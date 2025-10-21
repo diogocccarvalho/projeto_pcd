@@ -1,8 +1,10 @@
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class GameState {
 
@@ -10,6 +12,16 @@ public class GameState {
     ESPERA_JOGADORES,
     A_DECORRER,
     FINALIZADO
+  }
+
+  private static class RespostaComTimestamp {
+    final int resposta;
+    final long timestamp;
+
+    RespostaComTimestamp(int resposta) {
+      this.resposta = resposta;
+      this.timestamp = System.nanoTime();
+    }
   }
 
   private final String id_sala;
@@ -20,7 +32,7 @@ public class GameState {
 
   private final Map<String, String> jogadoresPorEquipa;
   private final Map<String, Integer> placar;
-  private final Map<String, Integer> respostasDaRonda;
+  private final Map<String, RespostaComTimestamp> respostasDaRonda;
 
   public GameState(String id_sala, List<Pergunta> quiz) {
     this.id_sala = id_sala;
@@ -69,7 +81,7 @@ public class GameState {
     return placar;
   }
 
-  public Map<String, Integer> getRespostasDaRonda() {
+  public Map<String, RespostaComTimestamp> getRespostasDaRonda() {
     return respostasDaRonda;
   }
 
@@ -91,7 +103,7 @@ public class GameState {
 
   public void submeterResposta(String idJogador, int resposta) {
     if (this.estado == GameStatus.A_DECORRER) {
-      respostasDaRonda.put(idJogador, resposta);
+      respostasDaRonda.put(idJogador, new RespostaComTimestamp(resposta));
     }
   }
 
@@ -115,13 +127,22 @@ public class GameState {
     int respostaCorreta = pergunta.getCorrect();
     int pontosBase = pergunta.getPoints();
 
-    for (Map.Entry<String, Integer> entry : respostasDaRonda.entrySet()) {
-      if (entry.getValue() == respostaCorreta) {
-        String idJogador = entry.getKey();
-        String idEquipa = jogadoresPorEquipa.get(idJogador);
-        int pontosGanhos = calcularPontosGanhos(idJogador, pontosBase);
-        adicionarPontosEquipa(idEquipa, pontosGanhos);
+    List<Map.Entry<String, RespostaComTimestamp>> respostasCorretas = respostasDaRonda.entrySet().stream()
+        .filter(entry -> entry.getValue().resposta == respostaCorreta)
+        .sorted(Comparator.comparingLong(entry -> entry.getValue().timestamp))
+        .collect(Collectors.toList());
+
+    for (int i = 0; i < respostasCorretas.size(); i++) {
+      Map.Entry<String, RespostaComTimestamp> entry = respostasCorretas.get(i);
+      String idJogador = entry.getKey();
+      String idEquipa = jogadoresPorEquipa.get(idJogador);
+
+      int pontosGanhos = pontosBase;
+      if (i < 2) {
+        pontosGanhos = pontosBase * 2;
       }
+
+      adicionarPontosEquipa(idEquipa, pontosGanhos);
     }
   }
 
@@ -144,7 +165,8 @@ public class GameState {
       boolean alguemAcertou = false;
 
       for (String membro : membrosDaEquipa) {
-        if (respostasDaRonda.getOrDefault(membro, -1) == respostaCorreta) {
+        RespostaComTimestamp resposta = respostasDaRonda.get(membro);
+        if (resposta != null && resposta.resposta == respostaCorreta) {
           alguemAcertou = true;
         } else {
           todosAcertaram = false;
@@ -157,10 +179,6 @@ public class GameState {
         adicionarPontosEquipa(idEquipa, pontosBase);
       }
     }
-  }
-
-  private int calcularPontosGanhos(String idJogador, int pontosBase) {
-    return pontosBase;
   }
 
   private void adicionarPontosEquipa(String idEquipa, int pontosAAdicionar) {
