@@ -1,3 +1,7 @@
+package pcd.iskahoot.server;
+
+import pcd.iskahoot.common.Pergunta;
+import pcd.iskahoot.common.TipoPergunta;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -191,4 +195,19 @@ public class GameState {
   public void finalizarJogo() {
     this.setEstado(GameStatus.FINALIZADO);
   }
+
+  // Adiciona isto ao teu GameState.java
+    @Override
+    public String toString() {
+        // O quiz pode ser nulo se usares new ArrayList<>() como no teste
+        int totalPerguntas = (this.quiz != null) ? this.quiz.size() : 0;
+
+        return String.format("-> Sala ID: %s | Estado: %s | Jogadores: %d | Pergunta: %d/%d",
+                this.id_sala,
+                this.estado,
+                this.jogadoresPorEquipa.size(),
+                this.indicePerguntaAtual + 1, // +1 para ser user-friendly
+                totalPerguntas
+        );
+    }
 }
