@@ -3,7 +3,6 @@ package pcd.iskahoot.server;
 import com.google.gson.Gson;
 import pcd.iskahoot.common.Pergunta;
 import pcd.iskahoot.common.Quiz;
-import pcd.iskahoot.common.QuizFile;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -23,16 +22,16 @@ public class QuizLoader {
         }
 
         Reader reader = new InputStreamReader(is);
-        QuizFile quizFile = gson.fromJson(reader, QuizFile.class);
 
-        if (quizFile == null || quizFile.getQuizzes() == null) {
+        Quiz quiz = gson.fromJson(reader, Quiz.class);
+
+        if (quiz == null || quiz.getQuestions() == null) {
             throw new RuntimeException("Formato de JSON inválido.");
         }
+        if (!Objects.equals(quiz.getName(), nomeDoQuiz)) {
+            throw new RuntimeException("O quiz no ficheiro (" + quiz.getName() + ") não é o quiz pedido (" + nomeDoQuiz + ").");
+        }
 
-        return quizFile.getQuizzes().stream()
-                .filter(quiz -> Objects.equals(quiz.getName(), nomeDoQuiz))
-                .findFirst()
-                .map(Quiz::getQuestions)
-                .orElseThrow(() -> new RuntimeException("Quiz com o nome '" + nomeDoQuiz + "' não encontrado no JSON."));
+        return quiz.getQuestions();
     }
 }

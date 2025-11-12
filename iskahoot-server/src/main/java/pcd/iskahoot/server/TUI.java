@@ -43,7 +43,7 @@ class TUI {
     } catch (InputMismatchException e) {
       System.out.println("Erro: Por favor, introduza um número inteiro válido.");
       userInput.nextLine();
-      return -1; // Sinaliza um erro para a main
+      return -1;
     }
   }
 

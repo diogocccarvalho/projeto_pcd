@@ -8,7 +8,7 @@ public class Pergunta {
     private int points;
     private int correct;
     private List<String> options;
-    private TipoPergunta tipo;
+    private TipoPergunta tipo = TipoPergunta.INDIVIDUAL;
 
     public String getQuestion() {
         return question;
