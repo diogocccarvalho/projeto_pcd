@@ -1,3 +1,8 @@
+// GUI.java → janela principal com pergunta, opções e temporizador.
+// ENUNCIADO: As principais interações executadas pelo cliente serão feitas através da
+//            GUI: exibição de perguntas, cronómetros e placares recebidos, bem como
+//            enviar respostas durante cada ronda.
+
 package pcd.iskahoot.client;
 
 import javax.swing.*;
@@ -5,6 +10,9 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
+
+
+// JFrame : componente principal onde se coloca todos os elementos visuais
 public class PainelJogo extends JPanel {
     
     private JLabel questionLabel;
@@ -31,16 +39,20 @@ public class PainelJogo extends JPanel {
     public PainelJogo () {
         super(new BorderLayout(10, 10));
 
+        //Layout
         setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
-
+        
+        //Perguntas
         questionLabel = new JLabel("Aguardando pergunta...", SwingConstants.CENTER);
         questionLabel.setFont(new Font("Calibri", Font.BOLD, 40));
 
+        //Timerbar (mesma coisa que o timer)
         progressBar = new JProgressBar(0, defaultSeconds);
         progressBar.setValue(defaultSeconds);
         progressBar.setStringPainted(false);
         progressBar.setForeground(azulEsc); 
 
+        //panel superior (pergunta + timebar)
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
         topPanel.setOpaque(false);
@@ -52,6 +64,7 @@ public class PainelJogo extends JPanel {
 
         add(topPanel, BorderLayout.NORTH);
 
+        //opções
         optionPanel = new JPanel(new GridLayout(2, 2, 15, 15));
         optionPanel.setBackground(cinza);
         optionButtons = new JButton[4];
@@ -65,6 +78,7 @@ public class PainelJogo extends JPanel {
             btn.setBorder(BorderFactory.createLineBorder(cinza, 2, true));
             btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
+            // Hover effect -> passar com o rato (só para ficar bonito)
             btn.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {
@@ -87,6 +101,7 @@ public class PainelJogo extends JPanel {
 
         add(optionPanel, BorderLayout.CENTER);
 
+        //Temporizador
         timerLabel = new JLabel(defaultSeconds + "s", SwingConstants.CENTER);
         timerLabel.setFont(new Font("Arial", Font.ITALIC, 18));
         add(timerLabel, BorderLayout.SOUTH);
@@ -101,6 +116,7 @@ public class PainelJogo extends JPanel {
         ));
         scoreboardPanel.setPreferredSize(new Dimension(220, 0));
 
+        //ScoreBoard
         JLabel scoreboardTitle = new JLabel("ScoreBoard", SwingConstants.CENTER);
         scoreboardTitle.setFont(new Font("Calibri", Font.BOLD | Font.ITALIC, 25));
         scoreboardTitle.setForeground(preto);
@@ -150,6 +166,7 @@ public class PainelJogo extends JPanel {
         stopTimer();
     }
     
+    //cenas do timer
     private void atualizarTimer() {
         segundos--;
         timerLabel.setText(segundos + "s");
