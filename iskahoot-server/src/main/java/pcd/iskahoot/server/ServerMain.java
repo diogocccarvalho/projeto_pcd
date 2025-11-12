@@ -1,49 +1,44 @@
 package pcd.iskahoot.server;
 
-import java.util.ArrayList;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.List;
 import pcd.iskahoot.common.Pergunta;
 
 public class ServerMain {
+    public static final int PORT = 12345;
 
     public static void main(String[] args) {
-        TUI tui = new TUI();
-        ArrayList<GameState> salasAtivas = new ArrayList<>();
+        System.out.println("[Servidor] A arrancar...");
 
-        System.out.println("Servidor IsKahoot (Modo Teste TUI) a arrancar...");
-        System.out.println("CTRL+C para parar.");
+        try {
+            // 1. Carregar o quiz UMA VEZ no arranque
+            List<Pergunta> perguntas = QuizLoader.carregarPerguntasDoQuiz("quizzes.json", "PCD-1");
+            System.out.println("[Servidor] Quiz 'PCD-1' carregado com " + perguntas.size() + " perguntas.");
+            
+            // 2. Criar a sala de jogo UMA VEZ
+            GameState sala = new GameState("SALA-PRINCIPAL", perguntas);
+            
+            // 3. Abrir a porta ("Central de Correios")
+            ServerSocket serverSocket = new ServerSocket(PORT);
+            System.out.println("[Servidor] À escuta na porta " + PORT + "...");
 
-        while (true) {
-            String escolha = tui.mainMenu();
-
-            switch (escolha) {
-                case "criarSala":
-                    tui.showMessage("Opção 'criarSala' selecionada.");
-                    int numEquipas = tui.obterNumeroDeEquipas();
-                    
-                    if (numEquipas > 0) {
-                        String idSala = "SALA-" + (salasAtivas.size() + 1);
-                        
-                        try {
-                            List<Pergunta> perguntas = QuizLoader.carregarPerguntasDoQuiz("quizzes.json", "PCD-1");
-                            GameState novaSala = new GameState(idSala, perguntas);
-                            salasAtivas.add(novaSala);
-                            tui.showMessage("Sala criada com " + perguntas.size() + " perguntas. Código: " + idSala);
-                        
-                        } catch (Exception e) {
-                            tui.showMessage("!!! ERRO ao carregar quiz: " + e.getMessage());
-                        }
-                    }
-                    break;
-
-                case "verSalas":
-                    tui.showMessage("A mostrar salas ativas...");
-                    tui.mostrarSalas(salasAtivas);
-                    break;
-
-                case "opçãoInválida":
-                    break;
+            // 4. O loop do "Porteiro"
+            while (true) {
+                // Bloqueia aqui, à espera que alguém toque à campainha
+                Socket clientSocket = serverSocket.accept(); 
+                
+                System.out.println("[Servidor] Novo cliente (" + clientSocket.getInetAddress() + ") ligou-se.");
+                
+                // 5. Entregar o cliente a um "Assistente" (ClientHandler)
+                // e lançá-lo numa nova Thread
+                ClientHandler handler = new ClientHandler(clientSocket, sala);
+                new Thread(handler).start();
             }
+
+        } catch (Exception e) {
+            System.out.println("[Servidor] ERRO CRÍTICO: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

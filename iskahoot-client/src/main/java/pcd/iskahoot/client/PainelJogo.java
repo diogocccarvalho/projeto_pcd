@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.function.IntConsumer; // Importar o "callback"
 
 public class PainelJogo extends JPanel {
     
@@ -21,15 +22,21 @@ public class PainelJogo extends JPanel {
 
     private boolean podeResponder = false;
 
-    private final Color beje = new Color(244, 241, 222);
+    // Cores
     private final Color azul = new Color(131, 197, 190);
     private final Color cinza = new Color(239, 241, 237);
     private final Color branco = new Color(255,255,255);
     private final Color preto = new Color(0,0,0); 
     private final Color azulEsc = new Color(0,109,119);
     
-    public PainelJogo () {
+
+    private final IntConsumer onAnswerSelectedCallback;
+
+
+    public PainelJogo (IntConsumer callback) {
         super(new BorderLayout(10, 10));
+        this.onAnswerSelectedCallback = callback;
+
 
         setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
 
@@ -118,6 +125,8 @@ public class PainelJogo extends JPanel {
         scoreboardPanel.add(scroll, BorderLayout.CENTER);
 
         add(scoreboardPanel, BorderLayout.EAST);
+        
+
     }
 
     public void updateQuestion(String p, String[] opt, int secQuestion) {
@@ -127,8 +136,14 @@ public class PainelJogo extends JPanel {
                     "</div></html>");
 
             for (int i = 0; i<4; i++){
-                optionButtons[i].setText(opt[i]);
-                optionButtons[i].setEnabled(true);
+ 
+                if (opt != null && i < opt.length) {
+                    optionButtons[i].setText(opt[i]);
+                    optionButtons[i].setEnabled(true);
+                } else {
+                    optionButtons[i].setText("");
+                    optionButtons[i].setEnabled(false);
+                }
             }
 
             podeResponder = true;
@@ -146,8 +161,13 @@ public class PainelJogo extends JPanel {
     private void handleOptionSelected(int i) {
         if(!podeResponder) return;
 
-        podeResponder= false;
+        podeResponder = false;
         stopTimer();
+
+
+        if (onAnswerSelectedCallback != null) {
+            onAnswerSelectedCallback.accept(i);
+        }
     }
     
     private void atualizarTimer() {
@@ -172,7 +192,7 @@ public class PainelJogo extends JPanel {
 
     private void resetTimer(int s){
         segundos = s;
-        timerLabel.setText(+ s + "s");
+        timerLabel.setText(s + "s");
         timer.stop();
         progressBar.setMaximum(s);
         progressBar.setValue(s);
@@ -184,4 +204,6 @@ public class PainelJogo extends JPanel {
                 .replace(">", "&gt;")
                 .replace("\n", "<br/>");
     }
+
+
 }
