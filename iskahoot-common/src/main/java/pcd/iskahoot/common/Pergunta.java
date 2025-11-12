@@ -2,8 +2,9 @@ package pcd.iskahoot.common;
 
 import java.util.List;
 
-public class Pergunta {
+public class Pergunta implements java.io.Serializable {
 
+    private static final long serialVersionUID = 1L;
     private String question;
     private int points;
     private int correct;

@@ -1,6 +1,6 @@
 package pcd.iskahoot.common;
 
-public enum TipoPergunta {
+public enum TipoPergunta implements java.io.Serializable{
     INDIVIDUAL,
     EQUIPA
 }
