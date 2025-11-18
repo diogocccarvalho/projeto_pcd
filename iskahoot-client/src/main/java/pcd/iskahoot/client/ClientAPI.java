@@ -2,68 +2,47 @@ package pcd.iskahoot.client;
 
 import pcd.iskahoot.common.*;
 import javax.swing.SwingUtilities;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.Socket;
 
-public class ClientNetwork implements Runnable {
+public class ClientAPI implements Runnable {
 
-    private final String ip;
+    private final String host;
     private final int port;
+    private final GameEventListener listener;
     
-    // Em vez de depender da classe concreta ClientGUI, dependemos da interface
-    private final GameEventListener listener; 
-
     private ObjectOutputStream out;
     private ObjectInputStream in;
     private Socket socket;
     private volatile boolean running = true;
 
-    public ClientNetwork(String ip, int port, GameEventListener listener) {
-        this.ip = ip;
+    public ClientAPI(String host, int port, GameEventListener listener) {
+        this.host = host;
         this.port = port;
         this.listener = listener;
     }
 
-    public void ligar() {
-        new Thread(() -> {
-            try {
-                this.socket = new Socket(ip, port);
-                this.out = new ObjectOutputStream(socket.getOutputStream());
-                this.in = new ObjectInputStream(socket.getInputStream());
-
-                notificarUI(() -> listener.onConexaoSucesso());
-
-                new Thread(this).start();
-
-            } catch (Exception e) {
-                notificarUI(() -> listener.onConexaoErro("Não foi possível ligar: " + e.getMessage()));
-            }
-        }).start();
-    }
-
-    public void fazerLogin(String username, String equipa, String sala) {
-        enviarObjeto(new MensagemLogin(username, equipa, sala));
-    }
-
-    public void enviarResposta(int indiceResposta) {
-        enviarObjeto(new MensagemEnviarResposta(indiceResposta));
+    public void iniciar() {
+        new Thread(this).start();
     }
 
     @Override
     public void run() {
         try {
+            socket = new Socket(host, port);
+            out = new ObjectOutputStream(socket.getOutputStream());
+            in = new ObjectInputStream(socket.getInputStream());
+            
+            notificarUI(() -> listener.onConexaoSucesso());
+
             while (running) {
                 Object obj = in.readObject();
-
-
                 tratarMensagem(obj);
             }
+
         } catch (Exception e) {
-            if (running) {
-                notificarUI(() -> listener.onConexaoErro("Ligação perdida: " + e.getMessage()));
-            }
+            running = false;
+            notificarUI(() -> listener.onConexaoErro("Ligação perdida: " + e.getMessage()));
         } finally {
             fecharRecursos();
         }
@@ -71,27 +50,33 @@ public class ClientNetwork implements Runnable {
 
     private void tratarMensagem(Object obj) {
         SwingUtilities.invokeLater(() -> {
-
+            
             if (obj instanceof MensagemLoginResultado) {
                 MensagemLoginResultado msg = (MensagemLoginResultado) obj;
-                if (msg.sucesso) {
-                    listener.onLoginSucesso();
-                } else {
-                    listener.onLoginFalha(msg.mensagemErro);
-                }
-
+                if (msg.sucesso) listener.onLoginSucesso();
+                else listener.onLoginFalha(msg.mensagemErro);
+            
             } else if (obj instanceof MensagemNovaPergunta) {
                 MensagemNovaPergunta msg = (MensagemNovaPergunta) obj;
                 listener.onNovaPergunta(msg.pergunta, msg.tipoRonda);
-
+            
             } else if (obj instanceof MensagemPlacar) {
                 MensagemPlacar msg = (MensagemPlacar) obj;
                 listener.onPlacarAtualizado(msg.pontuacoes, msg.jogoAcabou);
-
+            
             } else if (obj instanceof MensagemFimTempo) {
                 listener.onFimTempo();
             }
         });
+    }
+
+
+    public void fazerLogin(String user, String equipa, String sala) {
+        enviarObjeto(new MensagemLogin(user, equipa, sala));
+    }
+
+    public void enviarResposta(int index) {
+        enviarObjeto(new MensagemEnviarResposta(index));
     }
 
     private void enviarObjeto(Object obj) {
@@ -100,19 +85,14 @@ public class ClientNetwork implements Runnable {
             out.flush();
             out.reset();
         } catch (IOException e) {
-            System.err.println("Erro a enviar objeto: " + e.getMessage());
+            System.err.println("Erro a enviar: " + e.getMessage());
         }
     }
 
     private void notificarUI(Runnable r) {
         SwingUtilities.invokeLater(r);
     }
-
-    public void desconectar() {
-        running = false;
-        fecharRecursos();
-    }
-
+    
     private void fecharRecursos() {
         try { if (socket != null) socket.close(); } catch (Exception ignored) {}
     }

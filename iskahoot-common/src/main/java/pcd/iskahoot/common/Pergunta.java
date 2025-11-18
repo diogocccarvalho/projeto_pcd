@@ -9,7 +9,6 @@ public class Pergunta implements java.io.Serializable {
     private int points;
     private int correct;
     private List<String> options;
-    private TipoPergunta tipo = TipoPergunta.INDIVIDUAL;
 
     public String getQuestion() {
         return question;
@@ -25,9 +24,5 @@ public class Pergunta implements java.io.Serializable {
 
     public List<String> getOptions() {
         return options;
-    }
-
-    public TipoPergunta getTipo() {
-        return tipo;
     }
 }

@@ -3,7 +3,7 @@ package pcd.iskahoot.server;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import pcd.iskahoot.common.Mensagem;
+import pcd.iskahoot.common.*;
 
 public class ClientHandler implements Runnable {
 
@@ -22,49 +22,68 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         try {
-//abrir canais
             this.out = new ObjectOutputStream(socket.getOutputStream());
             this.in = new ObjectInputStream(socket.getInputStream());
 
-//TODO login
+            // 1. FASE DE LOGIN (Obrigatória antes de entrar no loop)
+            Object primeiroObjeto = in.readObject();
             
-            this.idJogador = "jogador_" + socket.getPort(); // ID temporário
-            
-//adicionar jogador
-            boolean adicionado = sala.adicionarJogador(idJogador, "equipaA");
-            
-//iniciar jogo
-            if (sala.getEstado() == GameState.GameStatus.ESPERA_JOGADORES) {
-                sala.iniciarJogo();
-                System.out.println("[Handler " + idJogador + "] Jogo iniciado!");
+            if (primeiroObjeto instanceof MensagemLogin) {
+                MensagemLogin loginMsg = (MensagemLogin) primeiroObjeto;
+                this.idJogador = loginMsg.username;
+                String equipa = loginMsg.idEquipa;
+
+                // Tentar adicionar ao jogo
+                boolean aceito = sala.adicionarJogador(idJogador, equipa);
+
+                if (aceito) {
+                    System.out.println("[Handler] Login aceite: " + idJogador);
+                    out.writeObject(new MensagemLoginResultado(true, null));
+                    
+                    // Se o jogo ainda não começou e já temos gente suficiente, arranca (simplificação)
+                    sala.iniciarJogo(); 
+                } else {
+                    System.out.println("[Handler] Login recusado: " + idJogador);
+                    out.writeObject(new MensagemLoginResultado(false, "Nome indisponível"));
+                    return; // Encerra a thread
+                }
+            } else {
+                // Se a primeira coisa não for login, desliga
+                return; 
             }
 
-//enviar pergunta
-            Mensagem msgPergunta = new Mensagem(
-                Mensagem.TipoMensagem.NOVA_PERGUNTA, 
-                sala.getPerguntaAtual()
-            );
-            out.writeObject(msgPergunta);
+            // TODO: Loop temporário de testes (ainda não temos a sincronização completa das fases)
+            // Enviar a primeira pergunta se o jogo já estiver a decorrer
+            if (sala.getEstado() == GameState.GameStatus.A_DECORRER) {
+                enviarPerguntaAtual();
+            }
 
+            // 2. LOOP DE JOGO
             while (true) {
+                Object obj = in.readObject();
 
-                Mensagem msgRecebida = (Mensagem) in.readObject();
-
-                if (msgRecebida.getTipo() == Mensagem.TipoMensagem.ENVIAR_RESPOSTA) {
-                    int respostaIdx = (Integer) msgRecebida.getPayload();
-                    System.out.println("[Handler " + idJogador + "] Recebeu resposta: " + respostaIdx);
+                if (obj instanceof MensagemEnviarResposta) {
+                    MensagemEnviarResposta msg = (MensagemEnviarResposta) obj;
+                    System.out.println("[Handler " + idJogador + "] Resposta: " + msg.indiceResposta);
                     
-                    sala.submeterResposta(idJogador, respostaIdx);
+                    sala.submeterResposta(idJogador, msg.indiceResposta);
                     
-                    // TODO: Avançar para a próxima pergunta
+                    // NOTA: Aqui, num sistema real, não envias logo a próxima pergunta.
+                    // Tens de esperar que TODOS respondam (Barreiras/Latches).
+                    // Por agora, isto fica em pausa até implementarmos a concorrência.
                 }
             }
 
         } catch (Exception e) {
-
-            System.out.println("[Handler " + idJogador + "] Cliente desligou-se: " + e.getMessage());
-        } finally {
-            // TODO: Limpar recursos
+            System.out.println("[Handler " + idJogador + "] Desligou-se: " + e.getMessage());
         }
+    }
+
+    private void enviarPerguntaAtual() throws Exception {
+        out.writeObject(new MensagemNovaPergunta(
+            sala.getPerguntaAtual(),
+            sala.getTipoRondaAtual()));
+        out.flush();
+        out.reset();
     }
 }

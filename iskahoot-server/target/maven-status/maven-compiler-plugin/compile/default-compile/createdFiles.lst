@@ -5,4 +5,3 @@ pcd/iskahoot/server/TUI.class
 pcd/iskahoot/server/ClientHandler.class
 pcd/iskahoot/server/QuizLoader.class
 pcd/iskahoot/server/GameState.class
-pcd/iskahoot/server/GameState$1.class
