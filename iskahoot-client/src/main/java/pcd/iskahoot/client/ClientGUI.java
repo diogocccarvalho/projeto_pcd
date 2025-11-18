@@ -88,7 +88,8 @@ public class ClientGUI extends JFrame implements GameEventListener {
         painelJogo.updateQuestion(
             p.getQuestion(), 
             p.getOptions().toArray(new String[0]), 
-            30 
+            30,
+            tipo
         );
         
         this.setTitle("IsKahoot - RONDA: " + tipo);

@@ -40,7 +40,6 @@ public class ClientMain {
         SwingUtilities.invokeLater(() -> {
             ClientGUI gui = new ClientGUI();
             
-            // Passamos os dados recebidos para a GUI preencher o formulário
             gui.preencherDadosIniciais(fIp, fPort, fUser, fEquipa, fSala);
 
             gui.setVisible(true);

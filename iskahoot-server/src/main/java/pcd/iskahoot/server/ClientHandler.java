@@ -25,64 +25,86 @@ public class ClientHandler implements Runnable {
             this.out = new ObjectOutputStream(socket.getOutputStream());
             this.in = new ObjectInputStream(socket.getInputStream());
 
-            // 1. FASE DE LOGIN (Obrigatória antes de entrar no loop)
+            // --- 1. LOGIN ---
             Object primeiroObjeto = in.readObject();
-            
             if (primeiroObjeto instanceof MensagemLogin) {
                 MensagemLogin loginMsg = (MensagemLogin) primeiroObjeto;
                 this.idJogador = loginMsg.username;
-                String equipa = loginMsg.idEquipa;
-
-                // Tentar adicionar ao jogo
-                boolean aceito = sala.adicionarJogador(idJogador, equipa);
-
-                if (aceito) {
-                    System.out.println("[Handler] Login aceite: " + idJogador);
+                
+                if (sala.adicionarJogador(idJogador, loginMsg.idEquipa)) {
+                    System.out.println("[Server] " + idJogador + " entrou na sala.");
                     out.writeObject(new MensagemLoginResultado(true, null));
                     
-                    // Se o jogo ainda não começou e já temos gente suficiente, arranca (simplificação)
+                    // PARA TESTE: Arranca logo mal o primeiro entra
                     sala.iniciarJogo(); 
                 } else {
-                    System.out.println("[Handler] Login recusado: " + idJogador);
-                    out.writeObject(new MensagemLoginResultado(false, "Nome indisponível"));
-                    return; // Encerra a thread
+                    out.writeObject(new MensagemLoginResultado(false, "Nome ocupado"));
+                    return;
                 }
             } else {
-                // Se a primeira coisa não for login, desliga
                 return; 
             }
 
-            // TODO: Loop temporário de testes (ainda não temos a sincronização completa das fases)
-            // Enviar a primeira pergunta se o jogo já estiver a decorrer
+            // Envia a primeira pergunta
             if (sala.getEstado() == GameState.GameStatus.A_DECORRER) {
                 enviarPerguntaAtual();
             }
 
-            // 2. LOOP DE JOGO
+            // --- 2. LOOP DE JOGO (Modo Teste Síncrono) ---
             while (true) {
                 Object obj = in.readObject();
 
                 if (obj instanceof MensagemEnviarResposta) {
                     MensagemEnviarResposta msg = (MensagemEnviarResposta) obj;
-                    System.out.println("[Handler " + idJogador + "] Resposta: " + msg.indiceResposta);
                     
+                    // A. Registar resposta
+                    System.out.println("[Server] " + idJogador + " respondeu: " + msg.indiceResposta);
                     sala.submeterResposta(idJogador, msg.indiceResposta);
+
+                    // ==========================================================
+                    // O "HACK" DE TESTE: Fazemos tudo seguido sem esperar por ninguém
+                    // ==========================================================
                     
-                    // NOTA: Aqui, num sistema real, não envias logo a próxima pergunta.
-                    // Tens de esperar que TODOS respondam (Barreiras/Latches).
-                    // Por agora, isto fica em pausa até implementarmos a concorrência.
+                    // B. Calcular os pontos desta ronda imediatamente
+                    sala.processarResultadosDaRonda();
+
+                    // C. Enviar o Placar atualizado (com flag de "não acabou")
+                    out.writeObject(new MensagemPlacar(sala.getPlacar(), false));
+                    out.flush();
+                    out.reset();
+
+                    // D. Pausa dramática (2s) para veres o placar no Cliente
+                    Thread.sleep(2000); 
+
+                    // E. Avançar para a próxima pergunta
+                    sala.avancarParaProximaPergunta();
+
+                    // F. Verificar se o jogo acabou ou mandar nova pergunta
+                    if (sala.jogoTerminou()) {
+                        System.out.println("[Server] Jogo terminou para " + idJogador);
+                        // Envia placar final com flag true
+                        out.writeObject(new MensagemPlacar(sala.getPlacar(), true));
+                        out.flush();
+                        break; // Sai do loop
+                    } else {
+                        // Manda a próxima
+                        enviarPerguntaAtual();
+                    }
                 }
             }
 
         } catch (Exception e) {
-            System.out.println("[Handler " + idJogador + "] Desligou-se: " + e.getMessage());
+            System.out.println("[Handler] Erro/Desconexão: " + e.getMessage());
+        } finally {
+            try { socket.close(); } catch (Exception e) {}
         }
     }
 
     private void enviarPerguntaAtual() throws Exception {
         out.writeObject(new MensagemNovaPergunta(
             sala.getPerguntaAtual(),
-            sala.getTipoRondaAtual()));
+            sala.getTipoRondaAtual()
+        ));
         out.flush();
         out.reset();
     }
