@@ -1,6 +1,9 @@
 package pcd.iskahoot.client;
 
 import javax.swing.*;
+
+import pcd.iskahoot.common.TipoPergunta;
+
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -129,7 +132,7 @@ public class PainelJogo extends JPanel {
 
     }
 
-    public void updateQuestion(String p, String[] opt, int secQuestion) {
+    public void updateQuestion(String p, String[] opt, int secQuestion, TipoPergunta type) {
         SwingUtilities.invokeLater(() -> {
             questionLabel.setText("<html><div style='text-align:center;'>" +
                     escapeHtml(p) +
