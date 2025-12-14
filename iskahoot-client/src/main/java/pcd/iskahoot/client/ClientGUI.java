@@ -11,6 +11,8 @@ public class ClientGUI extends JFrame implements GameEventListener {
     private final String ECRA_INICIO = "ECRA_INICIO";
     private final String ECRA_JOGO = "ECRA_JOGO";
     private final String ECRA_ESPERA = "ECRA_ESPERA";
+    private final String ECRA_PLACAR = "ECRA_PLACAR";
+
 
     private CardLayout cardLayout = new CardLayout();
     private JPanel painelPrincipal;
@@ -18,6 +20,8 @@ public class ClientGUI extends JFrame implements GameEventListener {
     private StartScreen painelInicio;
     private PainelJogo painelJogo;
     private JPanel painelEspera;
+    private PainelPlacar painelPlacar;
+
 
     private ClientAPI api;
     
@@ -30,12 +34,15 @@ public class ClientGUI extends JFrame implements GameEventListener {
         this.serverIp = serverIp;
         this.serverPort = serverPort;
 
+
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(900, 600);
         setLocationRelativeTo(null);
         setResizable(false);
 
         painelPrincipal = new JPanel(cardLayout);
+        painelPlacar = new PainelPlacar();
+
 
         // Action Listener for the Login Button
         painelInicio = new StartScreen(e -> {
@@ -67,6 +74,8 @@ public class ClientGUI extends JFrame implements GameEventListener {
         painelPrincipal.add(painelInicio, ECRA_INICIO);
         painelPrincipal.add(painelEspera, ECRA_ESPERA);
         painelPrincipal.add(painelJogo, ECRA_JOGO);
+        painelPrincipal.add(painelPlacar, ECRA_PLACAR);
+
 
         add(painelPrincipal);
         cardLayout.show(painelPrincipal, ECRA_INICIO);
@@ -117,16 +126,15 @@ public class ClientGUI extends JFrame implements GameEventListener {
         cardLayout.show(painelPrincipal, ECRA_JOGO);
     }
 
+
     @Override
     public void onPlacarAtualizado(Map<String, Integer> placar, boolean fimDeJogo) {
-        JLabel lbl = (JLabel) painelEspera.getComponent(0);
-        if (fimDeJogo) {
-             lbl.setText("<html><h1>FIM DO JOGO!</h1>" + placar.toString() + "</html>");
-        } else {
-             lbl.setText("<html><h2>Placar Atual</h2>" + placar.toString() + "</html>");
-        }
-        cardLayout.show(painelPrincipal, ECRA_ESPERA);
+        SwingUtilities.invokeLater(() -> {
+            painelPlacar.atualizarPlacar(placar, fimDeJogo);
+            cardLayout.show(painelPrincipal, ECRA_PLACAR);
+        });
     }
+
     
     @Override
     public void onFimTempo() {

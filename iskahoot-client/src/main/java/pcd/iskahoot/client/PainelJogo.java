@@ -1,95 +1,101 @@
 package pcd.iskahoot.client;
 
 import javax.swing.*;
-
 import pcd.iskahoot.common.TipoPergunta;
-
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.function.IntConsumer; // Importar o "callback"
+import java.util.function.IntConsumer;
 
 public class PainelJogo extends JPanel {
-    
+
     private JLabel questionLabel;
     private JPanel optionPanel;
-    JButton [] optionButtons;
+    private JButton[] optionButtons;
 
     private JLabel timerLabel;
     private int segundos;
-    private int defaultSeconds = 30;
     private Timer timer;
     private JProgressBar progressBar;
-    
-    JTextArea scoreBoard;
 
-    // NEW: Para a lista de jogadores
+    private JTextArea scoreBoard;
+
     private JList<String> playerList;
     private DefaultListModel<String> playerListModel;
 
     private boolean podeResponder = false;
 
-    // Cores
-    private final Color azul = new Color(131, 197, 190);
-    private final Color cinza = new Color(239, 241, 237);
-    private final Color branco = new Color(255,255,255);
-    private final Color preto = new Color(0,0,0); 
-    private final Color azulEsc = new Color(0,109,119);
-    
+    private final Color fundo = new Color(248, 249, 250);
+    private final Color branco = Color.WHITE;
+    private final Color preto = Color.BLACK;
+
+    private final Color[] kahootColors = {
+            new Color(226, 27, 60),
+            new Color(19, 104, 206),
+            new Color(216, 158, 0),
+            new Color(38, 137, 12)
+    };
+
+    private final Font titleFont = new Font("Segoe UI", Font.BOLD, 36);
+    private final Font optionFont = new Font("Segoe UI", Font.BOLD, 22);
+    private final Font smallFont = new Font("Segoe UI", Font.PLAIN, 16);
 
     private final IntConsumer onAnswerSelectedCallback;
 
-
-    public PainelJogo (IntConsumer callback) {
-        super(new BorderLayout(10, 10));
+    public PainelJogo(IntConsumer callback) {
+        super(new BorderLayout(15, 15));
         this.onAnswerSelectedCallback = callback;
 
-
+        setBackground(fundo);
         setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
 
         questionLabel = new JLabel("Aguardando pergunta...", SwingConstants.CENTER);
-        questionLabel.setFont(new Font("Calibri", Font.BOLD, 40));
+        questionLabel.setFont(titleFont);
 
-        progressBar = new JProgressBar(0, defaultSeconds);
-        progressBar.setValue(defaultSeconds);
-        progressBar.setStringPainted(false);
-        progressBar.setForeground(azulEsc); 
+        progressBar = new JProgressBar();
+        progressBar.setPreferredSize(new Dimension(0, 18));
+        progressBar.setBorderPainted(false);
+        progressBar.setMinimum(0);
+        progressBar.setMaximum(30);
+        progressBar.setValue(30);
+
+
+        timerLabel = new JLabel("", SwingConstants.CENTER);
+        timerLabel.setFont(smallFont);
 
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
         topPanel.setOpaque(false);
 
         topPanel.add(progressBar);
-        topPanel.add(Box.createVerticalStrut(38));
+        topPanel.add(Box.createVerticalStrut(30));
         topPanel.add(questionLabel);
-        topPanel.add(Box.createVerticalStrut(25));
+        topPanel.add(Box.createVerticalStrut(15));
 
         add(topPanel, BorderLayout.NORTH);
 
-        optionPanel = new JPanel(new GridLayout(2, 2, 15, 15));
-        optionPanel.setBackground(cinza);
+        optionPanel = new JPanel(new GridLayout(2, 2, 20, 20));
+        optionPanel.setOpaque(false);
         optionButtons = new JButton[4];
 
         for (int i = 0; i < 4; i++) {
             final int idx = i;
-            JButton btn = new JButton("Opção " + (i + 1));
-            btn.setFont(new Font("Arial", Font.PLAIN, 20));
-            btn.setFocusPainted(false);
-            btn.setBackground(branco);
-            btn.setBorder(BorderFactory.createLineBorder(cinza, 2, true));
+
+            JButton btn = new RoundedButton("Opção " + (i + 1));
+            btn.setFont(optionFont);
+            btn.setBackground(kahootColors[i]);
+            btn.setForeground(Color.WHITE);
             btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
             btn.addMouseListener(new MouseAdapter() {
-                @Override
                 public void mouseEntered(MouseEvent e) {
-                    btn.setBackground(azul);
-                    btn.setForeground(branco);
+                    if (btn.isEnabled())
+                        btn.setBackground(kahootColors[idx].darker());
                 }
 
-                @Override
                 public void mouseExited(MouseEvent e) {
-                    btn.setBackground(branco);
-                    btn.setForeground(preto);
+                    if (btn.isEnabled())
+                        btn.setBackground(kahootColors[idx]);
                 }
             });
 
@@ -101,181 +107,209 @@ public class PainelJogo extends JPanel {
 
         add(optionPanel, BorderLayout.CENTER);
 
-        timerLabel = new JLabel(defaultSeconds + "s", SwingConstants.CENTER);
-        timerLabel.setFont(new Font("Arial", Font.ITALIC, 18));
         add(timerLabel, BorderLayout.SOUTH);
 
         timer = new Timer(1000, e -> atualizarTimer());
 
-        // --- Scoreboard Panel ---
-        JPanel scoreboardPanel = new JPanel(new BorderLayout());
-        scoreboardPanel.setBackground(branco);
-        scoreboardPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(preto, 5),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
-        scoreboardPanel.setPreferredSize(new Dimension(220, 0));
-
-        JLabel scoreboardTitle = new JLabel("ScoreBoard", SwingConstants.CENTER);
-        scoreboardTitle.setFont(new Font("Calibri", Font.BOLD | Font.ITALIC, 25));
-        scoreboardTitle.setForeground(preto);
-        scoreboardPanel.add(scoreboardTitle, BorderLayout.NORTH);
-
+        JPanel scorePanel = criarPainelLateral("ScoreBoard");
         scoreBoard = new JTextArea();
         scoreBoard.setEditable(false);
-        scoreBoard.setFont(new Font("Arial", Font.PLAIN, 14));
+        scoreBoard.setFont(smallFont);
         scoreBoard.setBackground(branco);
-        scoreBoard.setForeground(Color.DARK_GRAY);
-        scoreBoard.setMargin(new Insets(10, 10, 10, 10));
+        scorePanel.add(new JScrollPane(scoreBoard), BorderLayout.CENTER);
+        add(scorePanel, BorderLayout.EAST);
 
-        JScrollPane scroll = new JScrollPane(scoreBoard);
-        scroll.setBorder(null);
-        scoreboardPanel.add(scroll, BorderLayout.CENTER);
-
-        add(scoreboardPanel, BorderLayout.EAST);
-        
-        // NEW: Painel para a lista de jogadores
-        JPanel playerListPanel = new JPanel(new BorderLayout());
-        playerListPanel.setBackground(branco);
-        playerListPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(preto, 5),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
-        playerListPanel.setPreferredSize(new Dimension(220, 0));
-
-        JLabel playerListTitle = new JLabel("Jogadores na Sala", SwingConstants.CENTER);
-        playerListTitle.setFont(new Font("Calibri", Font.BOLD | Font.ITALIC, 25));
-        playerListTitle.setForeground(preto);
-        playerListPanel.add(playerListTitle, BorderLayout.NORTH);
-
+        JPanel playerPanel = criarPainelLateral("Jogadores");
         playerListModel = new DefaultListModel<>();
         playerList = new JList<>(playerListModel);
-        playerList.setFont(new Font("Arial", Font.PLAIN, 14));
-        playerList.setBackground(branco);
-        playerList.setForeground(Color.DARK_GRAY);
-        
-        JScrollPane playerListScroll = new JScrollPane(playerList);
-        playerListScroll.setBorder(null);
-        playerListPanel.add(playerListScroll, BorderLayout.CENTER);
-
-        add(playerListPanel, BorderLayout.WEST);
+        playerList.setFont(smallFont);
+        playerList.setCellRenderer(new PlayerRenderer());
+        playerPanel.add(new JScrollPane(playerList), BorderLayout.CENTER);
+        add(playerPanel, BorderLayout.WEST);
     }
 
-    public void updateQuestion(String p, String[] opt, int secQuestion, TipoPergunta type) {
+    public void updateQuestion(String q, String[] opt, int sec, TipoPergunta type) {
         SwingUtilities.invokeLater(() -> {
-            questionLabel.setText("<html><div style='text-align:center;'>" +
-                    escapeHtml(p) +
-                    "</div></html>");
+            questionLabel.setText("<html><div style='text-align:center;'>"
+                    + escapeHtml(q) + "</div></html>");
 
-            for (int i = 0; i<4; i++){
- 
+            for (int i = 0; i < optionButtons.length; i++) {
                 if (opt != null && i < opt.length) {
                     optionButtons[i].setText(opt[i]);
                     optionButtons[i].setEnabled(true);
+                    optionButtons[i].setBackground(kahootColors[i]);
+                    optionButtons[i].setForeground(Color.WHITE);
                 } else {
-                    optionButtons[i].setText("");
                     optionButtons[i].setEnabled(false);
                 }
             }
 
             podeResponder = true;
-
-            resetTimer(secQuestion);
-            startTimer();
+            timer.stop();
+            resetTimer(sec);
+            timer.start();
 
         });
     }
 
-    public void updateScoreBoard(String text) {
-        SwingUtilities.invokeLater(() -> scoreBoard.setText(text));
-    } 
-
     private void handleOptionSelected(int i) {
-        if(!podeResponder) return;
+        if (!podeResponder) return;
 
         podeResponder = false;
-        stopTimer();
+        timer.stop();
 
-
-        if (onAnswerSelectedCallback != null) {
-            onAnswerSelectedCallback.accept(i);
+        for (int j = 0; j < optionButtons.length; j++) {
+            JButton b = optionButtons[j];
+            b.setEnabled(false);
+            if (j == i) {
+                b.setBackground(Color.WHITE);
+                b.setForeground(kahootColors[i]);
+            } else {
+                b.setBackground(new Color(220, 220, 220));
+            }
         }
+
+        onAnswerSelectedCallback.accept(i);
     }
-    
+
     private void atualizarTimer() {
         segundos--;
         timerLabel.setText(segundos + "s");
         progressBar.setValue(segundos);
 
+        if (segundos <= 5) {
+            progressBar.setForeground(kahootColors[0]);
+            progressBar.setVisible(segundos % 2 == 0);
+        } else if (segundos <= 10) {
+            progressBar.setForeground(kahootColors[2]);
+        }
+
         if (segundos <= 0) {
             timer.stop();
-            podeResponder= false;
-            timerLabel.setText("O tempo acabou XD");
+            podeResponder = false;
+            timerLabel.setText("O tempo acabou!");
         }
     }
 
-    private void startTimer() {
-        if (!timer.isRunning()) timer.start();
-    }
-
-    private void stopTimer() {
-        if (timer.isRunning()) timer.stop();
-    }
-
-    private void resetTimer(int s){
+    private void resetTimer(int s) {
         segundos = s;
         timerLabel.setText(s + "s");
-        timer.stop();
         progressBar.setMaximum(s);
         progressBar.setValue(s);
+        progressBar.setForeground(kahootColors[3]);
+        progressBar.setVisible(true);
     }
 
-        private String escapeHtml(String a) {
-
-            return a.replace("&", "&amp;")
-
-                    .replace("<", "&lt;")
-
-                    .replace(">", "&gt;")
-
-                    .replace("\n", "<br/>");
-
-        }
-
-    
-
-        // NEW: Métodos para gerir a lista de jogadores
-
-        public void addPlayer(String username) {
-
-            SwingUtilities.invokeLater(() -> {
-
-                if (!playerListModel.contains(username)) {
-
-                    playerListModel.addElement(username);
-
-                }
-
-            });
-
-        }
-
-    
-
-        public void setPlayerList(java.util.List<String> players) {
-
-            SwingUtilities.invokeLater(() -> {
-
-                playerListModel.clear();
-
-                for (String player : players) {
-
-                    playerListModel.addElement(player);
-
-                }
-
-            });
-
-        }
-
+    public void updateScoreBoard(String txt) {
+        SwingUtilities.invokeLater(() -> scoreBoard.setText(txt));
     }
+
+    public void addPlayer(String p) {
+        SwingUtilities.invokeLater(() -> {
+            if (!playerListModel.contains(p))
+                playerListModel.addElement(p);
+        });
+    }
+
+    public void setPlayerList(java.util.List<String> players) {
+        SwingUtilities.invokeLater(() -> {
+            playerListModel.clear();
+            players.forEach(playerListModel::addElement);
+        });
+    }
+
+    private JPanel criarPainelLateral(String titulo) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(branco);
+        panel.setPreferredSize(new Dimension(220, 0));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel label = new JLabel(titulo, SwingConstants.CENTER);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        panel.add(label, BorderLayout.NORTH);
+
+        return panel;
+    }
+
+    private String escapeHtml(String s) {
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\n", "<br/>");
+    }
+
+
+
+    static class RoundedButton extends JButton {
+        public RoundedButton(String text) {
+            super(text);
+            setContentAreaFilled(false);
+            setFocusPainted(false);
+            setBorderPainted(false);
+        }
+
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                                RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(getBackground());
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 30, 30);
+            super.paintComponent(g);
+        }
+    }
+
+    static class PlayerRenderer extends DefaultListCellRenderer {
+        public Component getListCellRendererComponent(
+                JList<?> list, Object value, int index,
+                boolean isSelected, boolean cellHasFocus) {
+
+            JLabel lbl = (JLabel) super.getListCellRendererComponent(
+                    list, value, index, isSelected, cellHasFocus);
+
+            lbl.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+            lbl.setBackground(isSelected
+                    ? new Color(19, 104, 206)
+                    : index % 2 == 0 ? Color.WHITE : new Color(245, 245, 245));
+            lbl.setForeground(isSelected ? Color.WHITE : Color.BLACK);
+            return lbl;
+        }
+    }
+
+/*     public static void main(String[] args) {
+    SwingUtilities.invokeLater(() -> {
+        JFrame frame = new JFrame("IsKahoot - Teste GUI");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(1200, 800);
+        frame.setLocationRelativeTo(null);
+
+        PainelJogo painel = new PainelJogo(
+                resposta -> System.out.println("Resposta escolhida: " + resposta)
+        );
+
+        frame.setContentPane(painel);
+        frame.setVisible(true);
+
+        // 🔽 Dados de teste
+        painel.setPlayerList(java.util.List.of(
+                "Alice", "Bruno", "Carla", "Diogo", "Eva"
+        ));
+
+
+
+        painel.updateQuestion(
+                "Qual destas estruturas NÃO é bloqueante?",
+                new String[]{
+                        "join()",
+                        "sleep()",
+                        "interrupted()",
+                        "wait()"
+                },
+                30,
+                null
+        );
+    });
+} */
+
+}
+
+
