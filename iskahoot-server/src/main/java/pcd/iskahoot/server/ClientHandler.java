@@ -26,6 +26,7 @@ public class ClientHandler implements Runnable {
     public void run() {
         try {
             this.out = new ObjectOutputStream(socket.getOutputStream());
+            this.out.flush(); // GOOD PRACTICE: Ensure header is written immediately
             this.in = new ObjectInputStream(socket.getInputStream());
 
             // --- 1. LOGIN ---
@@ -34,19 +35,18 @@ public class ClientHandler implements Runnable {
                 MensagemLogin loginMsg = (MensagemLogin) firstMessage;
                 this.idJogador = loginMsg.username;
                 
-                // Encontra a sala
                 this.myGame = activeGames.get(loginMsg.idJogo);
 
                 if (myGame == null) {
                     out.writeObject(new MensagemLoginResultado(false, "A sala não existe."));
+                    out.flush();
                     return;
                 }
                 
-                // Tenta adicionar o jogador (Secção Crítica tratada no GameState)
-                // Sincronizamos aqui para garantir que a verificação "isSalaCheia" é atómica com a entrada
                 boolean entrou;
                 boolean deveIniciar = false;
 
+                // Sync to ensure atomic check of 'isSalaCheia'
                 synchronized(myGame) {
                     entrou = myGame.adicionarJogador(idJogador, loginMsg.idEquipa);
                     if (entrou) {
@@ -63,34 +63,37 @@ public class ClientHandler implements Runnable {
                     // Envia confirmação e lista atual
                     out.writeObject(new MensagemLoginResultado(true, null));
                     out.writeObject(new MensagemListaJogadores(myGame.getPlayersInGame()));
+                    // FIX: IMPORTANT FLUSH/RESET
+                    // Ensures the client receives this immediately and the stream is clean 
+                    // before the GameLoop thread starts using it for broadcasts.
+                    out.flush(); 
+                    out.reset(); 
                     
                     // Avisa os outros
                     myGame.broadcastMessage(new MensagemNovoJogador(idJogador), idJogador);
                     
-                    // SE a sala encheu com este jogador, arranca o Loop do Jogo numa nova thread
+                    // Start Game if full
                     if (deveIniciar) {
                         System.out.println("[Server] Sala cheia! Iniciando GameLoop...");
                         new Thread(new GameLoop(myGame)).start();
                     }
 
                 } else {
-                    out.writeObject(new MensagemLoginResultado(false, "Sala cheia, jogo a decorrer ou username em uso."));
+                    out.writeObject(new MensagemLoginResultado(false, "Erro: Sala cheia/Jogo decorrer/Nome duplicado."));
+                    out.flush();
                     return;
                 }
             } else {
-                return; // Protocolo errado
+                return; 
             }
 
             // --- 2. LISTENER LOOP ---
-            // Apenas ouve mensagens e encaminha para o GameState.
-            // NÃO gere o fluxo do jogo.
             while (running) {
                 try {
                     Object obj = in.readObject();
 
                     if (obj instanceof MensagemEnviarResposta) {
                         MensagemEnviarResposta msg = (MensagemEnviarResposta) obj;
-                        // Encaminha a resposta para o estado
                         myGame.registarResposta(idJogador, msg.indiceResposta);
                     }
                 } catch (Exception e) {

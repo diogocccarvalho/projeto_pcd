@@ -17,61 +17,42 @@ public class GameLoop implements Runnable {
             System.out.println("[GameLoop] Jogo a iniciar na sala " + gameState.getIdSala());
             gameState.setEstado(GameState.GameStatus.A_DECORRER);
             
-            // Pausa inicial antes da primeira pergunta
             Thread.sleep(2000);
 
-            // --- CICLO DO JOGO ---
             while (!gameState.jogoTerminou()) {
                 
-                // 1. Avançar para a próxima pergunta
                 gameState.avancarConfiguracaoRonda();
                 Pergunta perguntaAtual = gameState.getPerguntaAtual();
 
-                if (perguntaAtual == null) break; // Fim da lista
+                if (perguntaAtual == null) break;
 
                 System.out.println("[GameLoop] Enviando Pergunta: " + perguntaAtual.getQuestion());
+                System.out.println("[GameLoop] Destinatários: " + gameState.getPlayersInGame());
 
-                // 2. Broadcast da Pergunta para todos
+                // Broadcast Question
                 gameState.broadcastMessage(
                     new MensagemNovaPergunta(perguntaAtual, gameState.getTipoRondaAtual()), 
                     null
                 );
 
-                // --- PLANO CONCORRÊNCIA (FUTURO) ---
-                // Inicializar Latch ou Barreira aqui
-                // Ex: currentLatch = new ModifiedCountdownLatch(...)
-                
-                // 3. AGUARDAR RESPOSTAS
-                // Atualmente: Sleep fixo.
-                // Futuro: chamar latch.await() ou barrier.await()
+                // Wait for answers
                 System.out.println("[GameLoop] A aguardar respostas (10s)...");
-                Thread.sleep(10000); 
+                Thread.sleep(10000); // REPLACE THIS WITH LATCH.AWAIT() LATER
 
-                // 4. Calcular Pontos (Secção Crítica lógica)
-                // O estado processa as respostas que chegaram durante o sleep
+                // Calculate Points
                 gameState.processarResultadosDaRonda();
 
-                // 5. Enviar Placar
-                boolean ultimoRound = gameState.jogoTerminou(); // ou check do indice
-                // Nota: O método jogoTerminou só retorna true se indice >= size, 
-                // aqui verificamos se esta foi a última para avisar o cliente
-                
-                // Pequena correção lógica: verificar se há mais perguntas
-                boolean fim = (gameState.getPerguntaAtual() == null); // Próxima seria null?
-                // Simplificação: enviamos false sempre, e no final do while enviamos o final.
-                
+                // Broadcast Score
                 gameState.broadcastMessage(
                     new MensagemPlacar(new HashMap<>(gameState.getPlacar()), false), 
                     null
                 );
                 
-                // 6. Pausa para ver o placar
                 if (!gameState.jogoTerminou()) {
                     Thread.sleep(5000);
                 }
             }
 
-            // --- FIM DO JOGO ---
             gameState.setEstado(GameState.GameStatus.FINALIZADO);
             gameState.broadcastMessage(
                 new MensagemPlacar(new HashMap<>(gameState.getPlacar()), true), 
