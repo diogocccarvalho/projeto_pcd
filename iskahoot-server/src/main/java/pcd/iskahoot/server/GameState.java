@@ -73,7 +73,7 @@ public class GameState {
             this.currentLatch = new ModifiedCountdownLatch(2, 2, tempoPorPergunta, getTotalJogadores());
         } else {
             // Barrier: Total teams, time from config
-            this.currentBarrier = new TeamBarrier(this.maxEquipas, tempoPorPergunta);
+            this.currentBarrier = new TeamBarrier(getTotalJogadores(), tempoPorPergunta);
         }
     }
 
@@ -107,9 +107,12 @@ public class GameState {
     // Chamado pelo ClientHandler quando recebe input
     public void registarResposta(String idJogador, int resposta) {
         if (this.estado == GameStatus.A_DECORRER) {
+            
+            // Verifica se este jogador específico já respondeu (idempotência)
             if (respostasDaRonda.containsKey(idJogador)) {
                 return;
             }
+
             int mult = 1;
 
             // 1. Interaction with Concurrency Objects
@@ -117,10 +120,10 @@ public class GameState {
                 // Returns 2 if fast, 1 otherwise
                 mult = currentLatch.countdown(); 
             } else if (tipoRondaAtual == TipoPergunta.EQUIPA && currentBarrier != null) {
-                String idEquipa = jogadoresPorEquipa.get(idJogador);
-                if (idEquipa != null && equipasQueJaResponderam.add(idEquipa)) {
-                    currentBarrier.arrive();
-                }
+                // CORREÇÃO:
+                // Removemos a verificação 'equipasQueJaResponderam'.
+                // Cada jogador individual contribui para a barreira.
+                currentBarrier.arrive();
             }
 
             // 2. Store the answer with the calculated multiplier
