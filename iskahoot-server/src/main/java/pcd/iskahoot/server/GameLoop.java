@@ -25,13 +25,14 @@ public class GameLoop implements Runnable {
                 Pergunta perguntaAtual = gameState.getPerguntaAtual();
 
                 if (perguntaAtual == null) break;
+                int tempo = gameState.getTempoPorPergunta();
 
                 System.out.println("[GameLoop] Enviando Pergunta: " + perguntaAtual.getQuestion());
                 System.out.println("[GameLoop] Destinatários: " + gameState.getPlayersInGame());
 
                 // Broadcast Question
                 gameState.broadcastMessage(
-                    new MensagemNovaPergunta(perguntaAtual, gameState.getTipoRondaAtual()), 
+                    new MensagemNovaPergunta(perguntaAtual, gameState.getTipoRondaAtual(), tempo), 
                     null
                 );
 

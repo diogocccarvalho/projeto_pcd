@@ -38,7 +38,10 @@ class TUI {
     int numPerguntas = obterNumero("Número de perguntas: ");
     if (numPerguntas == -1) return null;
 
-    return new GameConfig(numEquipas, jogadoresPorEquipa, numPerguntas);
+    int tempo = obterNumero("Tempo por pergunta (segundos): ");
+    if (tempo == -1) return null;
+
+    return new GameConfig(numEquipas, jogadoresPorEquipa, numPerguntas, tempo);
   }
 
   private int obterNumero(String prompt) {

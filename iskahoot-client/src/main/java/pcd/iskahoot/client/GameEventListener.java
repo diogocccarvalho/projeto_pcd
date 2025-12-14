@@ -18,4 +18,6 @@ public interface GameEventListener {
 
     void onPlayerJoined(String username); // NEW
     void onPlayerListReceived(java.util.List<String> players); // NEW
+
+    void onNovaPergunta(Pergunta p, TipoPergunta tipo, int segundos);
 }

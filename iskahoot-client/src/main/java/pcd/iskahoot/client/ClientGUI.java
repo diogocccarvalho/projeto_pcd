@@ -111,6 +111,7 @@ public class ClientGUI extends JFrame implements GameEventListener {
             p.getQuestion(), 
             p.getOptions().toArray(new String[0]), 
             30,
+            segundos,
             tipo
         );
         this.setTitle("IsKahoot - RONDA: " + tipo);

@@ -60,7 +60,7 @@ public class ClientAPI implements Runnable {
             
             } else if (obj instanceof MensagemNovaPergunta) {
                 MensagemNovaPergunta msg = (MensagemNovaPergunta) obj;
-                listener.onNovaPergunta(msg.pergunta, msg.tipoRonda);
+                listener.onNovaPergunta(msg.pergunta, msg.tipoRonda, msg.tempo);
             
             } else if (obj instanceof MensagemPlacar) {
                 MensagemPlacar msg = (MensagemPlacar) obj;

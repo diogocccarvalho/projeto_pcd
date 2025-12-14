@@ -32,11 +32,11 @@ public class GameState {
     private final List<Pergunta> quiz;
     private final int maxEquipas;
     private final int maxJogadoresPorEquipa;
-
+    private final int tempoPorPergunta;
     private volatile GameStatus estado;
     private int indicePerguntaAtual;
     private TipoPergunta tipoRondaAtual;
-
+        
     // Dados do jogo
     private final Map<String, String> jogadoresPorEquipa = new ConcurrentHashMap<>();
     private final Map<String, Integer> placar = new ConcurrentHashMap<>();
@@ -52,6 +52,7 @@ public class GameState {
         this.maxJogadoresPorEquipa = config.jogadoresPorEquipa;
         this.estado = GameStatus.ESPERA_JOGADORES;
         this.indicePerguntaAtual = -1;
+        this.tempoPorPergunta = config.tempoPorPergunta;
     }
 
     // --- MÉTODOS DE ESTADO ---
@@ -196,4 +197,5 @@ public class GameState {
     public TipoPergunta getTipoRondaAtual() { return tipoRondaAtual; }
     public boolean jogoTerminou() { return indicePerguntaAtual >= quiz.size(); }
     public List<String> getPlayersInGame() { return new ArrayList<>(jogadoresPorEquipa.keySet()); }
+    public int getTempoPorPergunta() { return tempoPorPergunta; }
 }
