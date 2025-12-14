@@ -6,42 +6,43 @@ public class ClientMain {
 
     public static void main(String[] args) {
 
-        // Valores por defeito (caso não sejam passados argumentos)
+        // Default connection values
         String ip = "localhost";
         int port = 12345;
-        String sala = "SALA-1";
-        String equipa = "EquipaA";
-        String username = "Jogador1";
+        
+        // Defaults for UI fields (optional, just to pre-fill)
+        String defaultSala = "SALA-1";
+        String defaultEquipa = "EquipaA";
+        String defaultUser = "Aluno1";
 
-        // 1. Parse dos Argumentos (Requisito do Enunciado: IP PORT Jogo Equipa Username)
-        if (args.length >= 5) {
+        // Parse arguments: java ClientMain {IP} {PORT} {SALA} {EQUIPA} {USER}
+        if (args.length >= 2) {
             try {
                 ip = args[0];
                 port = Integer.parseInt(args[1]);
-                sala = args[2];
-                equipa = args[3];
-                username = args[4];
+                if (args.length >= 5) {
+                    defaultSala = args[2];
+                    defaultEquipa = args[3];
+                    defaultUser = args[4];
+                }
             } catch (NumberFormatException e) {
                 System.err.println("Erro: A porta deve ser um número inteiro.");
             }
         } else {
-            System.out.println("Aviso: Argumentos insuficientes. A usar valores por defeito.");
-            System.out.println("Uso correto: java ClientMain {IP} {PORT} {SALA} {EQUIPA} {USER}");
+            System.out.println("Aviso: Argumentos insuficientes. A usar valores por defeito (localhost:12345).");
+            System.out.println("Uso: java ClientMain {IP} {PORT} [SALA] [EQUIPA] [USER]");
         }
 
-        // Variáveis finais para usar no lambda
         final String fIp = ip;
         final int fPort = port;
-        final String fSala = sala;
-        final String fEquipa = equipa;
-        final String fUser = username;
+        final String fSala = defaultSala;
+        final String fEquipa = defaultEquipa;
+        final String fUser = defaultUser;
 
-        // 2. Arrancar a Interface Gráfica
         SwingUtilities.invokeLater(() -> {
-            ClientGUI gui = new ClientGUI();
-            
-            gui.preencherDadosIniciais(fIp, fPort, fUser, fEquipa, fSala);
-
+            // Pass IP and Port directly to the GUI "backend", not the UI text fields
+            ClientGUI gui = new ClientGUI(fIp, fPort);
+            gui.preencherDadosUi(fUser, fEquipa, fSala);
             gui.setVisible(true);
         });
     }

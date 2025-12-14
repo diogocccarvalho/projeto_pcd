@@ -6,7 +6,6 @@ import java.util.Map;
 import pcd.iskahoot.common.Pergunta;
 import pcd.iskahoot.common.TipoPergunta;
 
-// 1. Implementa o Listener para receber avisos da API
 public class ClientGUI extends JFrame implements GameEventListener {
 
     private final String ECRA_INICIO = "ECRA_INICIO";
@@ -16,15 +15,21 @@ public class ClientGUI extends JFrame implements GameEventListener {
     private CardLayout cardLayout = new CardLayout();
     private JPanel painelPrincipal;
     
-    // Os teus painéis originais
     private StartScreen painelInicio;
     private PainelJogo painelJogo;
     private JPanel painelEspera;
 
     private ClientAPI api;
+    
+    // Internal connection details
+    private final String serverIp;
+    private final int serverPort;
 
-    public ClientGUI() {
+    public ClientGUI(String serverIp, int serverPort) {
         super("IsKahoot Cliente");
+        this.serverIp = serverIp;
+        this.serverPort = serverPort;
+
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(900, 600);
         setLocationRelativeTo(null);
@@ -32,12 +37,22 @@ public class ClientGUI extends JFrame implements GameEventListener {
 
         painelPrincipal = new JPanel(cardLayout);
 
+        // Action Listener for the Login Button
         painelInicio = new StartScreen(e -> {
-            String ip = painelInicio.getIp();
-            int port = painelInicio.getPort();
+            // 1. Get User/Team data from UI
+            String user = painelInicio.getUsername();
+            String equipa = painelInicio.getEquipa();
+            String sala = painelInicio.getSala();
 
-            api = new ClientAPI(ip, port, this); 
+            // 2. Start API with internal IP/Port
+            api = new ClientAPI(this.serverIp, this.serverPort, this); 
             api.iniciar();
+            
+            // 3. Trigger Login
+            // Wait slightly for connection or handle in callback? 
+            // For simplicity, we queue the login immediately; ClientAPI handles the socket creation.
+            // Note: In a robust app, we might wait for 'onConexaoSucesso' before sending login,
+            // but ClientAPI.run() does that sequence naturally.
             
             cardLayout.show(painelPrincipal, ECRA_ESPERA);
         });
@@ -46,9 +61,8 @@ public class ClientGUI extends JFrame implements GameEventListener {
             if (api != null) api.enviarResposta(indice);
         });
 
-        // Painel simples de espera/placar
         painelEspera = new JPanel(new BorderLayout());
-        painelEspera.add(new JLabel("A aguardar...", SwingConstants.CENTER), BorderLayout.CENTER);
+        painelEspera.add(new JLabel("A conectar...", SwingConstants.CENTER), BorderLayout.CENTER);
 
         painelPrincipal.add(painelInicio, ECRA_INICIO);
         painelPrincipal.add(painelEspera, ECRA_ESPERA);
@@ -57,10 +71,14 @@ public class ClientGUI extends JFrame implements GameEventListener {
         add(painelPrincipal);
         cardLayout.show(painelPrincipal, ECRA_INICIO);
     }
-
+    
+    public void preencherDadosUi(String user, String equipa, String sala) {
+        painelInicio.setDados(user, equipa, sala);
+    }
 
     @Override
     public void onConexaoSucesso() {
+        // Automatically send login when connected
         api.fazerLogin(
             painelInicio.getUsername(), 
             painelInicio.getEquipa(),
@@ -76,7 +94,8 @@ public class ClientGUI extends JFrame implements GameEventListener {
 
     @Override
     public void onLoginSucesso() {
-        // Fica no ecrã de espera até vir a primeira pergunta
+        JLabel lbl = (JLabel) painelEspera.getComponent(0);
+        lbl.setText("A aguardar início do jogo...");
         cardLayout.show(painelPrincipal, ECRA_ESPERA);
     }
 
@@ -88,16 +107,13 @@ public class ClientGUI extends JFrame implements GameEventListener {
 
     @Override
     public void onNovaPergunta(Pergunta p, TipoPergunta tipo) {
-        // Atualiza o teu painel de jogo antigo
         painelJogo.updateQuestion(
             p.getQuestion(), 
             p.getOptions().toArray(new String[0]), 
             30,
             tipo
         );
-        
         this.setTitle("IsKahoot - RONDA: " + tipo);
-        
         cardLayout.show(painelPrincipal, ECRA_JOGO);
     }
 
@@ -119,24 +135,15 @@ public class ClientGUI extends JFrame implements GameEventListener {
 
     @Override
     public void onPlayerJoined(String username) {
-        SwingUtilities.invokeLater(() -> {
-            painelJogo.addPlayer(username);
-        });
+        SwingUtilities.invokeLater(() -> painelJogo.addPlayer(username));
     }
 
     @Override
     public void onPlayerListReceived(java.util.List<String> players) {
-        SwingUtilities.invokeLater(() -> {
-            painelJogo.setPlayerList(players);
-        });
+        SwingUtilities.invokeLater(() -> painelJogo.setPlayerList(players));
     }
 
     private void mostrarErro(String msg) {
         JOptionPane.showMessageDialog(this, msg, "Erro", JOptionPane.ERROR_MESSAGE);
     }
-
-    public void preencherDadosIniciais(String ip, int port, String user, String equipa, String sala) {
-        // Chama o método que criámos acima na StartScreen
-        painelInicio.setDados(ip, port, user, equipa, sala);
-    } 
 }

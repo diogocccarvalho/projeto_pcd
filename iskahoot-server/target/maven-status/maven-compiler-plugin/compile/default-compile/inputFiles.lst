@@ -1,5 +1,6 @@
 /home/diogo/Documents/uni/PCD/projeto_pcd/iskahoot-server/src/main/java/pcd/iskahoot/server/ClientHandler.java
 /home/diogo/Documents/uni/PCD/projeto_pcd/iskahoot-server/src/main/java/pcd/iskahoot/server/GameConfig.java
+/home/diogo/Documents/uni/PCD/projeto_pcd/iskahoot-server/src/main/java/pcd/iskahoot/server/GameLoop.java
 /home/diogo/Documents/uni/PCD/projeto_pcd/iskahoot-server/src/main/java/pcd/iskahoot/server/GameState.java
 /home/diogo/Documents/uni/PCD/projeto_pcd/iskahoot-server/src/main/java/pcd/iskahoot/server/ModifiedCountdownLatch.java
 /home/diogo/Documents/uni/PCD/projeto_pcd/iskahoot-server/src/main/java/pcd/iskahoot/server/QuizLoader.java

@@ -5,8 +5,6 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.Map;
 import pcd.iskahoot.common.*;
-import pcd.iskahoot.common.MensagemNovoJogador; // NEW
-import pcd.iskahoot.common.MensagemListaJogadores; // NEW
 
 public class ClientHandler implements Runnable {
 
@@ -17,6 +15,7 @@ public class ClientHandler implements Runnable {
     
     private String idJogador;
     private GameState myGame;
+    private volatile boolean running = true;
 
     public ClientHandler(Socket socket, Map<String, GameState> activeGames) {
         this.socket = socket;
@@ -35,108 +34,83 @@ public class ClientHandler implements Runnable {
                 MensagemLogin loginMsg = (MensagemLogin) firstMessage;
                 this.idJogador = loginMsg.username;
                 
-                // Encontra a sala de jogo correta
+                // Encontra a sala
                 this.myGame = activeGames.get(loginMsg.idJogo);
 
                 if (myGame == null) {
-                    out.writeObject(new MensagemLoginResultado(false, "A sala '" + loginMsg.idJogo + "' não existe."));
+                    out.writeObject(new MensagemLoginResultado(false, "A sala não existe."));
                     return;
                 }
                 
-                if (myGame.adicionarJogador(idJogador, loginMsg.idEquipa)) {
+                // Tenta adicionar o jogador (Secção Crítica tratada no GameState)
+                // Sincronizamos aqui para garantir que a verificação "isSalaCheia" é atómica com a entrada
+                boolean entrou;
+                boolean deveIniciar = false;
+
+                synchronized(myGame) {
+                    entrou = myGame.adicionarJogador(idJogador, loginMsg.idEquipa);
+                    if (entrou) {
+                        myGame.addPlayerOutputStream(idJogador, out);
+                        if (myGame.isSalaCheia()) {
+                            deveIniciar = true;
+                        }
+                    }
+                }
+
+                if (entrou) {
                     System.out.println("[Server] " + idJogador + " entrou na sala " + myGame.getIdSala());
-                    myGame.addPlayerOutputStream(idJogador, out); // NEW: Adiciona o output stream do jogador
                     
-                    // NEW: Envia o resultado do login (sucesso)
+                    // Envia confirmação e lista atual
                     out.writeObject(new MensagemLoginResultado(true, null));
-                    
-                    // NEW: Envia a lista atual de jogadores ao novo jogador
                     out.writeObject(new MensagemListaJogadores(myGame.getPlayersInGame()));
                     
-                    // NEW: Broadcast para outros jogadores que um novo jogador entrou
+                    // Avisa os outros
                     myGame.broadcastMessage(new MensagemNovoJogador(idJogador), idJogador);
                     
-                    // Verifica se a sala está cheia para começar o jogo
-                    if (myGame.getTotalJogadores() == myGame.getMaxEquipas() * myGame.getMaxJogadoresPorEquipa()) {
-                        System.out.println("[Server] A sala " + myGame.getIdSala() + " está cheia! O jogo vai começar.");
-                        myGame.iniciarJogo();
+                    // SE a sala encheu com este jogador, arranca o Loop do Jogo numa nova thread
+                    if (deveIniciar) {
+                        System.out.println("[Server] Sala cheia! Iniciando GameLoop...");
+                        new Thread(new GameLoop(myGame)).start();
                     }
+
                 } else {
-                    out.writeObject(new MensagemLoginResultado(false, "Não foi possível entrar na sala (verifique se o nome de user já está em uso, se a equipa ou sala estão cheias)."));
+                    out.writeObject(new MensagemLoginResultado(false, "Sala cheia, jogo a decorrer ou username em uso."));
                     return;
                 }
             } else {
-                // Se a primeira mensagem não for de login, ignora o cliente.
-                return; 
+                return; // Protocolo errado
             }
 
-            // Envia a primeira pergunta se o jogo já estiver a decorrer para esta sala
-            if (myGame.getEstado() == GameState.GameStatus.A_DECORRER) {
-                enviarPerguntaAtual();
-            }
+            // --- 2. LISTENER LOOP ---
+            // Apenas ouve mensagens e encaminha para o GameState.
+            // NÃO gere o fluxo do jogo.
+            while (running) {
+                try {
+                    Object obj = in.readObject();
 
-            // --- 2. LOOP DE JOGO (Modo Teste Síncrono) ---
-            while (myGame.getEstado() != GameState.GameStatus.FINALIZADO) {
-                Object obj = in.readObject();
-
-                if (obj instanceof MensagemEnviarResposta) {
-                    MensagemEnviarResposta msg = (MensagemEnviarResposta) obj;
-                    
-                    // A. Registar resposta
-                    System.out.println("[Server] " + idJogador + " respondeu: " + msg.indiceResposta);
-                    myGame.submeterResposta(idJogador, msg.indiceResposta);
-
-                    // ==========================================================
-                    // O "HACK" DE TESTE: Fazemos tudo seguido sem esperar por ninguém
-                    // ==========================================================
-                    
-                    // B. Calcular os pontos desta ronda imediatamente
-                    myGame.processarResultadosDaRonda();
-
-                    // C. Enviar o Placar atualizado (com flag de "não acabou")
-                    out.writeObject(new MensagemPlacar(myGame.getPlacar(), false));
-                    out.flush();
-                    out.reset();
-
-                    // D. Pausa dramática (2s) para veres o placar no Cliente
-                    Thread.sleep(2000); 
-
-                    // E. Avançar para a próxima pergunta
-                    myGame.avancarParaProximaPergunta();
-
-                    // F. Verificar se o jogo acabou ou mandar nova pergunta
-                    if (myGame.jogoTerminou()) {
-                        System.out.println("[Server] Jogo terminou para " + idJogador);
-                        // Envia placar final com flag true
-                        out.writeObject(new MensagemPlacar(myGame.getPlacar(), true));
-                        out.flush();
-                        break; 
-                    } else {
-                        // Manda a próxima
-                        enviarPerguntaAtual();
+                    if (obj instanceof MensagemEnviarResposta) {
+                        MensagemEnviarResposta msg = (MensagemEnviarResposta) obj;
+                        // Encaminha a resposta para o estado
+                        myGame.registarResposta(idJogador, msg.indiceResposta);
                     }
+                } catch (Exception e) {
+                    System.out.println("[Handler] Erro na conexão com " + idJogador + ": " + e.getMessage());
+                    running = false;
                 }
             }
 
         } catch (Exception e) {
-            System.out.println("[Handler] Cliente " + idJogador + " desconectado/com erro: " + e.getMessage());
-            // TODO: Adicionar lógica para remover o jogador do myGame
+            e.printStackTrace();
         } finally {
-            if (idJogador != null && myGame != null) {
-                myGame.removePlayerOutputStream(idJogador);
-                System.out.println("[Server] " + idJogador + " saiu da sala " + myGame.getIdSala());
-                // TODO: Broadcast to other clients that this player has left
-            }
-            try { socket.close(); } catch (Exception e) {}
+            closeConnection();
         }
     }
 
-    private void enviarPerguntaAtual() throws Exception {
-        out.writeObject(new MensagemNovaPergunta(
-            myGame.getPerguntaAtual(),
-            myGame.getTipoRondaAtual()
-        ));
-        out.flush();
-        out.reset();
+    private void closeConnection() {
+        if (myGame != null && idJogador != null) {
+            myGame.removePlayerOutputStream(idJogador);
+            System.out.println("[Server] " + idJogador + " desconectado.");
+        }
+        try { socket.close(); } catch (Exception e) {}
     }
 }
