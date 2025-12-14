@@ -43,6 +43,7 @@ public class GameState {
     private final Map<String, String> jogadoresPorEquipa = new ConcurrentHashMap<>();
     private final Map<String, Integer> placar = new ConcurrentHashMap<>();
     private final Map<String, RespostaComTimestamp> respostasDaRonda = new ConcurrentHashMap<>();
+    private final Set<String> equipasQueJaResponderam = new HashSet<>();
     
     // Outputs para Broadcast
     private final Map<String, ObjectOutputStream> playerOutputStreams = new ConcurrentHashMap<>();
@@ -68,11 +69,11 @@ public class GameState {
         this.currentBarrier = null;
 
         if (tipoRondaAtual == TipoPergunta.INDIVIDUAL) {
-            // Latch: Total players, 2 bonuses, 2x multiplier, time from config
-            this.currentLatch = new ModifiedCountdownLatch(getTotalJogadores(), 2, 2, tempoPorPergunta);
+            // Latch: 2x multiplier, 2 bonuses, time from config, total players
+            this.currentLatch = new ModifiedCountdownLatch(2, 2, tempoPorPergunta, getTotalJogadores());
         } else {
-            // Barrier: Total players, time from config
-            this.currentBarrier = new TeamBarrier(getTotalJogadores(), tempoPorPergunta);
+            // Barrier: Total teams, time from config
+            this.currentBarrier = new TeamBarrier(this.maxEquipas, tempoPorPergunta);
         }
     }
 
@@ -106,6 +107,9 @@ public class GameState {
     // Chamado pelo ClientHandler quando recebe input
     public void registarResposta(String idJogador, int resposta) {
         if (this.estado == GameStatus.A_DECORRER) {
+            if (respostasDaRonda.containsKey(idJogador)) {
+                return;
+            }
             int mult = 1;
 
             // 1. Interaction with Concurrency Objects
@@ -113,8 +117,10 @@ public class GameState {
                 // Returns 2 if fast, 1 otherwise
                 mult = currentLatch.countdown(); 
             } else if (tipoRondaAtual == TipoPergunta.EQUIPA && currentBarrier != null) {
-                // Just notify arrival
-                currentBarrier.arrive();
+                String idEquipa = jogadoresPorEquipa.get(idJogador);
+                if (idEquipa != null && equipasQueJaResponderam.add(idEquipa)) {
+                    currentBarrier.arrive();
+                }
             }
 
             // 2. Store the answer with the calculated multiplier
@@ -128,6 +134,7 @@ public class GameState {
     // Chamado pelo GameLoop para preparar a próxima ronda
     public void avancarConfiguracaoRonda() {
         this.respostasDaRonda.clear();
+        this.equipasQueJaResponderam.clear();
         this.indicePerguntaAtual++;
         
         // Alterna o tipo de ronda
@@ -218,6 +225,17 @@ public class GameState {
                 }
             }
         });
+    }
+
+
+    @Override
+    public String toString() {
+        return String.format("Sala: %-8s | Estado: %-16s | Jogadores: %d/%d", 
+            id_sala, 
+            estado, 
+            getTotalJogadores(), 
+            (maxEquipas * maxJogadoresPorEquipa)
+        );
     }
 
     // --- GETTERS ---
