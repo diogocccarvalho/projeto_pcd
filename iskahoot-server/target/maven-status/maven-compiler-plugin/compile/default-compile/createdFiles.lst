@@ -1,5 +1,6 @@
 pcd/iskahoot/server/GameState$GameStatus.class
 pcd/iskahoot/server/GameState$RespostaComTimestamp.class
+pcd/iskahoot/server/TeamBarrier.class
 pcd/iskahoot/server/GameLoop.class
 pcd/iskahoot/server/ServerMain.class
 pcd/iskahoot/server/ModifiedCountdownLatch.class

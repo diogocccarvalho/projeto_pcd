@@ -1,12 +1,3 @@
-/*
-NOTES:
-Cria se a latch no inicio de cada ronde e cada ClientHandler chama latch.countdown quando recebe a resposta do seu jogador
-gameState vai 
-
-
-*/
-
-
 package pcd.iskahoot.server;
 
 public class ModifiedCountdownLatch {
@@ -39,17 +30,12 @@ public class ModifiedCountdownLatch {
     //synchronized é um lock
     
     private void iniciarTimer(){
-        Thread t = new Thread (() -> {
+        timerThread = new Thread (() -> {
             try {
                 Thread.sleep(wait * 1000L);
                 } catch (InterruptedException e) {
-
-                synchronized (this) {
-                    tempoEsgotado = true;
-                    notifyAll();
+                    return;
                 }
-                return;
-            }
 
             // Tempo expirou naturalmente
             synchronized (this) {

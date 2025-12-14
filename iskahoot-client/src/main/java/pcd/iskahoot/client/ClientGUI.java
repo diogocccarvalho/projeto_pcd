@@ -106,11 +106,10 @@ public class ClientGUI extends JFrame implements GameEventListener {
     }
 
     @Override
-    public void onNovaPergunta(Pergunta p, TipoPergunta tipo) {
+    public void onNovaPergunta(Pergunta p, TipoPergunta tipo, int segundos) {
         painelJogo.updateQuestion(
             p.getQuestion(), 
             p.getOptions().toArray(new String[0]), 
-            30,
             segundos,
             tipo
         );

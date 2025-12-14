@@ -1,5 +1,6 @@
 package pcd.iskahoot.server;
 
+import java.util.concurrent.ExecutorService;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
@@ -12,14 +13,16 @@ public class ClientHandler implements Runnable {
     private final Map<String, GameState> activeGames;
     private ObjectOutputStream out;
     private ObjectInputStream in;
-    
+    private final ExecutorService gamePool;
+
     private String idJogador;
     private GameState myGame;
     private volatile boolean running = true;
 
-    public ClientHandler(Socket socket, Map<String, GameState> activeGames) {
+    public ClientHandler(Socket socket, Map<String, GameState> activeGames, ExecutorService gamePool) {
         this.socket = socket;
         this.activeGames = activeGames;
+        this.gamePool = gamePool;
     }
 
     @Override
@@ -74,8 +77,8 @@ public class ClientHandler implements Runnable {
                     
                     // Start Game if full
                     if (deveIniciar) {
-                        System.out.println("[Server] Sala cheia! Iniciando GameLoop...");
-                        new Thread(new GameLoop(myGame)).start();
+                        System.out.println("[Server] Sala cheia! Submetendo GameLoop à ThreadPool...");
+                        gamePool.submit(new GameLoop(myGame));
                     }
 
                 } else {

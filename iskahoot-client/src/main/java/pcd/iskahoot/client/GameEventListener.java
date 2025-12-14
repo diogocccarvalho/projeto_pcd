@@ -11,13 +11,12 @@ public interface GameEventListener {
     void onLoginSucesso();
     void onLoginFalha(String motivo);
     
-    void onNovaPergunta(Pergunta p, TipoPergunta tipo);
+    void onNovaPergunta(Pergunta p, TipoPergunta tipo, int segundos);
     void onPlacarAtualizado(Map<String, Integer> placar, boolean fimDeJogo);
     
     void onFimTempo();
 
     void onPlayerJoined(String username); // NEW
     void onPlayerListReceived(java.util.List<String> players); // NEW
-
-    void onNovaPergunta(Pergunta p, TipoPergunta tipo, int segundos);
+    
 }

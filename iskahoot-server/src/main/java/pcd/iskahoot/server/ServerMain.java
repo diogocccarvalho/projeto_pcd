@@ -7,11 +7,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import pcd.iskahoot.common.Pergunta;
 
 public class ServerMain {
     public static final int PORT = 12345;
-    
+    private final ExecutorService gamePool = Executors.newFixedThreadPool(5);    
     private ServerSocket serverSocket;
     private volatile boolean running = true;
     private Thread connectionListenerThread;
@@ -53,7 +55,7 @@ public class ServerMain {
                 while (running) {
                     Socket clientSocket = serverSocket.accept();
                     // Agora passamos apenas as referências necessárias
-                    ClientHandler handler = new ClientHandler(clientSocket, activeGames);
+                    ClientHandler handler = new ClientHandler(clientSocket, activeGames, gamePool);
                     new Thread(handler).start();
                 }
             } catch (IOException e) {
@@ -67,7 +69,7 @@ public class ServerMain {
         String idSala = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         // Configuração padrão
         GameConfig config = tui.obterConfiguracaoJogo(); 
-        if (config == null) config = new GameConfig(2, 2, 5); // Fallback se o TUI falhar
+        if (config == null) config = new GameConfig(2, 2, 5, 30); // Fallback se o TUI falhar
 
         GameState newGame = new GameState(idSala, allQuestions, config);
         activeGames.put(idSala, newGame);

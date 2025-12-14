@@ -20,19 +20,21 @@ public class GameState {
     public static class RespostaComTimestamp {
         final int resposta;
         final long timestamp;
-        // Futuro: int bonusMultiplier;
+        final int multiplier;
 
-        RespostaComTimestamp(int resposta) {
+        RespostaComTimestamp(int resposta, int multiplier) {
             this.resposta = resposta;
             this.timestamp = System.nanoTime();
+            this.multiplier = multiplier;
         }
     }
-
     private final String id_sala;
     private final List<Pergunta> quiz;
     private final int maxEquipas;
     private final int maxJogadoresPorEquipa;
     private final int tempoPorPergunta;
+    private ModifiedCountdownLatch currentLatch;
+    private TeamBarrier currentBarrier;
     private volatile GameStatus estado;
     private int indicePerguntaAtual;
     private TipoPergunta tipoRondaAtual;
@@ -61,6 +63,29 @@ public class GameState {
         return getTotalJogadores() == (maxEquipas * maxJogadoresPorEquipa);
     }
 
+    public synchronized void iniciarSincronizacao() {
+        this.currentLatch = null;
+        this.currentBarrier = null;
+
+        if (tipoRondaAtual == TipoPergunta.INDIVIDUAL) {
+            // Latch: Total players, 2 bonuses, 2x multiplier, time from config
+            this.currentLatch = new ModifiedCountdownLatch(getTotalJogadores(), 2, 2, tempoPorPergunta);
+        } else {
+            // Barrier: Total players, time from config
+            this.currentBarrier = new TeamBarrier(getTotalJogadores(), tempoPorPergunta);
+        }
+    }
+
+    public void esperarPeloFimDaRonda() throws InterruptedException {
+        if (currentLatch != null) {
+            currentLatch.await();
+        } else if (currentBarrier != null) {
+            currentBarrier.await();
+            // Barrier might have a running timer we want to kill immediately after waking up
+            currentBarrier.cancelTimer(); 
+        }
+    }
+
     public synchronized boolean adicionarJogador(String idJogador, String idEquipa) {
         if (this.estado != GameStatus.ESPERA_JOGADORES) return false;
         if (jogadoresPorEquipa.containsKey(idJogador)) return false;
@@ -81,13 +106,22 @@ public class GameState {
     // Chamado pelo ClientHandler quando recebe input
     public void registarResposta(String idJogador, int resposta) {
         if (this.estado == GameStatus.A_DECORRER) {
-            System.out.println("[GameState] Resposta recebida de " + idJogador + ": " + resposta);
+            int mult = 1;
+
+            // 1. Interaction with Concurrency Objects
+            if (tipoRondaAtual == TipoPergunta.INDIVIDUAL && currentLatch != null) {
+                // Returns 2 if fast, 1 otherwise
+                mult = currentLatch.countdown(); 
+            } else if (tipoRondaAtual == TipoPergunta.EQUIPA && currentBarrier != null) {
+                // Just notify arrival
+                currentBarrier.arrive();
+            }
+
+            // 2. Store the answer with the calculated multiplier
+            RespostaComTimestamp novaResposta = new RespostaComTimestamp(resposta, mult);
+            respostasDaRonda.putIfAbsent(idJogador, novaResposta);
             
-            // Regista a resposta
-            respostasDaRonda.putIfAbsent(idJogador, new RespostaComTimestamp(resposta));
-            
-            // --- PLANO CONCORRÊNCIA (FUTURO) ---
-            // Aqui chamarás: latch.countDown() ou barrier.check();
+            System.out.println("[GameState] Resposta de " + idJogador + " (mult=" + mult + ")");
         }
     }
 
@@ -118,20 +152,22 @@ public class GameState {
     }
 
     private void processarResultadosIndividuais(Pergunta pergunta) {
-        int respostaCorreta = pergunta.getCorrect();
-        int pontosBase = pergunta.getPoints();
+        int correct = pergunta.getCorrect();
+        int points = pergunta.getPoints();
 
-        // Ordena por tempo (simplificado, futuro usará o Latch multiplier)
-        List<Map.Entry<String, RespostaComTimestamp>> respostasCorretas = respostasDaRonda.entrySet().stream()
-            .filter(entry -> entry.getValue().resposta == respostaCorreta)
-            .sorted(Comparator.comparingLong(entry -> entry.getValue().timestamp))
-            .collect(Collectors.toList());
-
-        for (int i = 0; i < respostasCorretas.size(); i++) {
-            String idJogador = respostasCorretas.get(i).getKey();
-            String idEquipa = jogadoresPorEquipa.get(idJogador);
-            int pontosGanhos = (i < 2) ? pontosBase * 2 : pontosBase; 
-            placar.merge(idEquipa, pontosGanhos, Integer::sum);
+        // Iterate through all answers
+        for (Map.Entry<String, RespostaComTimestamp> entry : respostasDaRonda.entrySet()) {
+            // Check correctness
+            if (entry.getValue().resposta == correct) {
+                String idJogador = entry.getKey();
+                String idEquipa = jogadoresPorEquipa.get(idJogador);
+                
+                // Calculate: Base Points * Multiplier (1 or 2)
+                int pontosGanhos = points * entry.getValue().multiplier;
+                
+                // Add to team score
+                placar.merge(idEquipa, pontosGanhos, Integer::sum);
+            }
         }
     }
 
