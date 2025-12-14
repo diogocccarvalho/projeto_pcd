@@ -15,16 +15,24 @@
         <dependency>
             <groupId>pcd.iskahoot</groupId>
             <artifactId>iskahoot-common</artifactId>
-            </dependency>
+        </dependency>
     </dependencies>
+
     <build>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>3.2.0</version>
                 <configuration>
                     <mainClass>pcd.iskahoot.client.ClientMain</mainClass>
+                    <arguments>
+                        <argument>${ip}</argument>
+                        <argument>${port}</argument>
+                        <argument>${sala}</argument>
+                        <argument>${equipa}</argument>
+                        <argument>${user}</argument>
+                    </arguments>
                 </configuration>
             </plugin>
         </plugins>

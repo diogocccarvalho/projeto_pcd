@@ -15,12 +15,12 @@
         <dependency>
             <groupId>pcd.iskahoot</groupId>
             <artifactId>iskahoot-common</artifactId>
-            </dependency>
+        </dependency>
 
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            </dependency>
+        </dependency>
     </dependencies>
 
     <build>
@@ -28,7 +28,8 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version> <configuration>
+                <version>3.2.0</version>
+                <configuration>
                     <mainClass>pcd.iskahoot.server.ServerMain</mainClass>
                 </configuration>
             </plugin>

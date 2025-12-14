@@ -4,6 +4,8 @@ import pcd.iskahoot.common.*;
 import javax.swing.SwingUtilities;
 import java.io.*;
 import java.net.Socket;
+import pcd.iskahoot.common.MensagemNovoJogador; // NEW
+import pcd.iskahoot.common.MensagemListaJogadores; // NEW
 
 public class ClientAPI implements Runnable {
 
@@ -66,6 +68,14 @@ public class ClientAPI implements Runnable {
             
             } else if (obj instanceof MensagemFimTempo) {
                 listener.onFimTempo();
+            
+            } else if (obj instanceof MensagemNovoJogador) { // NEW
+                MensagemNovoJogador msg = (MensagemNovoJogador) obj;
+                listener.onPlayerJoined(msg.username);
+            
+            } else if (obj instanceof MensagemListaJogadores) { // NEW
+                MensagemListaJogadores msg = (MensagemListaJogadores) obj;
+                listener.onPlayerListReceived(msg.jogadores);
             }
         });
     }

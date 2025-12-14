@@ -15,4 +15,7 @@ public interface GameEventListener {
     void onPlacarAtualizado(Map<String, Integer> placar, boolean fimDeJogo);
     
     void onFimTempo();
+
+    void onPlayerJoined(String username); // NEW
+    void onPlayerListReceived(java.util.List<String> players); // NEW
 }

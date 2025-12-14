@@ -33,8 +33,8 @@ public class ClientGUI extends JFrame implements GameEventListener {
         painelPrincipal = new JPanel(cardLayout);
 
         painelInicio = new StartScreen(e -> {
-            String ip = "localhost";
-            int port = 12345;;
+            String ip = painelInicio.getIp();
+            int port = painelInicio.getPort();
 
             api = new ClientAPI(ip, port, this); 
             api.iniciar();
@@ -61,7 +61,11 @@ public class ClientGUI extends JFrame implements GameEventListener {
 
     @Override
     public void onConexaoSucesso() {
-        api.fazerLogin("UserTeste", "EquipaA", "SALA-1");
+        api.fazerLogin(
+            painelInicio.getUsername(), 
+            painelInicio.getEquipa(),
+            painelInicio.getSala()
+        );
     }
 
     @Override
@@ -111,6 +115,20 @@ public class ClientGUI extends JFrame implements GameEventListener {
     @Override
     public void onFimTempo() {
         JOptionPane.showMessageDialog(this, "O tempo acabou!");
+    }
+
+    @Override
+    public void onPlayerJoined(String username) {
+        SwingUtilities.invokeLater(() -> {
+            painelJogo.addPlayer(username);
+        });
+    }
+
+    @Override
+    public void onPlayerListReceived(java.util.List<String> players) {
+        SwingUtilities.invokeLater(() -> {
+            painelJogo.setPlayerList(players);
+        });
     }
 
     private void mostrarErro(String msg) {

@@ -23,6 +23,10 @@ public class PainelJogo extends JPanel {
     
     JTextArea scoreBoard;
 
+    // NEW: Para a lista de jogadores
+    private JList<String> playerList;
+    private DefaultListModel<String> playerListModel;
+
     private boolean podeResponder = false;
 
     // Cores
@@ -103,6 +107,7 @@ public class PainelJogo extends JPanel {
 
         timer = new Timer(1000, e -> atualizarTimer());
 
+        // --- Scoreboard Panel ---
         JPanel scoreboardPanel = new JPanel(new BorderLayout());
         scoreboardPanel.setBackground(branco);
         scoreboardPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -129,7 +134,31 @@ public class PainelJogo extends JPanel {
 
         add(scoreboardPanel, BorderLayout.EAST);
         
+        // NEW: Painel para a lista de jogadores
+        JPanel playerListPanel = new JPanel(new BorderLayout());
+        playerListPanel.setBackground(branco);
+        playerListPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(preto, 5),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        playerListPanel.setPreferredSize(new Dimension(220, 0));
 
+        JLabel playerListTitle = new JLabel("Jogadores na Sala", SwingConstants.CENTER);
+        playerListTitle.setFont(new Font("Calibri", Font.BOLD | Font.ITALIC, 25));
+        playerListTitle.setForeground(preto);
+        playerListPanel.add(playerListTitle, BorderLayout.NORTH);
+
+        playerListModel = new DefaultListModel<>();
+        playerList = new JList<>(playerListModel);
+        playerList.setFont(new Font("Arial", Font.PLAIN, 14));
+        playerList.setBackground(branco);
+        playerList.setForeground(Color.DARK_GRAY);
+        
+        JScrollPane playerListScroll = new JScrollPane(playerList);
+        playerListScroll.setBorder(null);
+        playerListPanel.add(playerListScroll, BorderLayout.CENTER);
+
+        add(playerListPanel, BorderLayout.WEST);
     }
 
     public void updateQuestion(String p, String[] opt, int secQuestion, TipoPergunta type) {
@@ -201,12 +230,52 @@ public class PainelJogo extends JPanel {
         progressBar.setValue(s);
     }
 
-    private String escapeHtml(String a) {
-        return a.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\n", "<br/>");
+        private String escapeHtml(String a) {
+
+            return a.replace("&", "&amp;")
+
+                    .replace("<", "&lt;")
+
+                    .replace(">", "&gt;")
+
+                    .replace("\n", "<br/>");
+
+        }
+
+    
+
+        // NEW: Métodos para gerir a lista de jogadores
+
+        public void addPlayer(String username) {
+
+            SwingUtilities.invokeLater(() -> {
+
+                if (!playerListModel.contains(username)) {
+
+                    playerListModel.addElement(username);
+
+                }
+
+            });
+
+        }
+
+    
+
+        public void setPlayerList(java.util.List<String> players) {
+
+            SwingUtilities.invokeLater(() -> {
+
+                playerListModel.clear();
+
+                for (String player : players) {
+
+                    playerListModel.addElement(player);
+
+                }
+
+            });
+
+        }
+
     }
-
-
-}

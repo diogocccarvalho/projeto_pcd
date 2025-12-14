@@ -27,22 +27,35 @@ class TUI {
     }
   }
 
-  public int obterNumeroDeEquipas() {
-    System.out.print("Introduza o número de equipas para a nova sala: ");
+  public GameConfig obterConfiguracaoJogo() {
+    System.out.println("\n--- CONFIGURAR NOVA SALA ---");
+    int numEquipas = obterNumero("Número de equipas: ");
+    if (numEquipas == -1) return null;
+
+    int jogadoresPorEquipa = obterNumero("Jogadores por equipa: ");
+    if (jogadoresPorEquipa == -1) return null;
+    
+    int numPerguntas = obterNumero("Número de perguntas: ");
+    if (numPerguntas == -1) return null;
+
+    return new GameConfig(numEquipas, jogadoresPorEquipa, numPerguntas);
+  }
+
+  private int obterNumero(String prompt) {
+    System.out.print(prompt);
     try {
-      int numEquipas = userInput.nextInt();
-      userInput.nextLine();
+      int numero = userInput.nextInt();
+      userInput.nextLine(); 
 
-      if (numEquipas > 0) {
-        return numEquipas;
+      if (numero > 0) {
+        return numero;
       } else {
-        System.out.println("O número de equipas deve ser positivo.");
-        return -1; // Sinaliza um erro para a main
+        System.out.println("Erro: O número deve ser um inteiro positivo.");
+        return -1;
       }
-
     } catch (InputMismatchException e) {
       System.out.println("Erro: Por favor, introduza um número inteiro válido.");
-      userInput.nextLine();
+      userInput.nextLine(); 
       return -1;
     }
   }
@@ -53,7 +66,8 @@ class TUI {
       System.out.println("Não existem salas ativas no momento.");
     } else {
       for (GameState sala : salas) {
-        System.out.println(sala);
+        // O método toString() de GameState foi melhorado para mostrar mais detalhes
+        System.out.println(sala.toString()); 
       }
     }
   }

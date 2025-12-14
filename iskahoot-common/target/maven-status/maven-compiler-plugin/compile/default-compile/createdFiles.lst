@@ -1,11 +1,13 @@
-pcd/iskahoot/common/MensagemNovaPergunta.class
 pcd/iskahoot/common/Mensagem.class
-pcd/iskahoot/common/MensagemLogin.class
 pcd/iskahoot/common/Quiz.class
 pcd/iskahoot/common/Pergunta.class
+pcd/iskahoot/common/MensagemListaJogadores.class
+pcd/iskahoot/common/MensagemFimTempo.class
+pcd/iskahoot/common/MensagemLoginResultado.class
+pcd/iskahoot/common/MensagemNovaPergunta.class
+pcd/iskahoot/common/MensagemLogin.class
 pcd/iskahoot/common/MensagemEnviarResposta.class
 pcd/iskahoot/common/TipoPergunta.class
+pcd/iskahoot/common/MensagemNovoJogador.class
 pcd/iskahoot/common/MensagemPlacar.class
 pcd/iskahoot/common/QuizFile.class
-pcd/iskahoot/common/MensagemLoginResultado.class
-pcd/iskahoot/common/MensagemFimTempo.class

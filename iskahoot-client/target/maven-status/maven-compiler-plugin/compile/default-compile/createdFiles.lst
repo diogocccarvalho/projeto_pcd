@@ -1,7 +1,6 @@
 pcd/iskahoot/client/ClientAPI.class
-pcd/iskahoot/client/ClientNetwork.class
-pcd/iskahoot/client/StartScreen.class
 pcd/iskahoot/client/ClientGUI.class
+pcd/iskahoot/client/StartScreen.class
 pcd/iskahoot/client/PainelJogo.class
 pcd/iskahoot/client/GameEventListener.class
 pcd/iskahoot/client/ClientMain.class
