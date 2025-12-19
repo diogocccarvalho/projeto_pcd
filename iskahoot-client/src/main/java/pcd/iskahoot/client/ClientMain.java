@@ -2,6 +2,24 @@ package pcd.iskahoot.client;
 
 import javax.swing.SwingUtilities;
 
+
+/**
+ * Ponto de entrada do cliente IsKahoot.
+ *
+ * Uso:
+ *   java ClientMain {IP} {PORT}
+ *
+ * Se não forem fornecidos argumentos, usa:
+ *   IP   = localhost
+ *   PORT = 12345
+ *
+ * O utilizador final NÃO introduz IP nem porto na GUI.
+ * Apenas insere username, equipa e código da sala.
+ * 
+ * O ip é definido no arranque do cliente atraves dos argumentos da main
+ */
+
+
 public class ClientMain {
 
     public static void main(String[] args) {

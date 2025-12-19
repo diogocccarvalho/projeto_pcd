@@ -13,45 +13,107 @@ public class StartScreen extends JPanel {
     private JButton btnEntrar;
 
     public StartScreen(ActionListener acaoBotao) {
-        this.setLayout(new GridBagLayout());
-        this.setBackground(new Color(240, 240, 240));
 
-        // Reduced grid rows since IP/Port are gone
-        JPanel formPanel = new JPanel(new GridLayout(4, 2, 10, 10));
-        formPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
-        formPanel.setBackground(Color.WHITE);
+        setLayout(new GridBagLayout());
+        setBackground(new Color(245, 246, 250));
 
-        // --- Dados do Jogador/Jogo ---
-        formPanel.add(new JLabel("Username:"));
-        txtUser = new JTextField("Aluno1");
-        formPanel.add(txtUser);
+        JPanel card = new JPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBackground(Color.WHITE);
+        card.setBorder(new EmptyBorder(30, 40, 30, 40));
+        card.setPreferredSize(new Dimension(360, 420));
 
-        formPanel.add(new JLabel("Nome Equipa:"));
-        txtEquipa = new JTextField("EquipaA");
-        formPanel.add(txtEquipa);
+        JLabel lblTitulo = new JLabel("IsKahoot");
+        lblTitulo.setFont(new Font("SansSerif", Font.BOLD, 36));
+        lblTitulo.setForeground(new Color(90, 72, 255));
+        lblTitulo.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        formPanel.add(new JLabel("Código Sala:"));
-        txtSala = new JTextField("SALA-1");
-        formPanel.add(txtSala);
+        JLabel lblSubtitulo = new JLabel("Entrar no jogo");
+        lblSubtitulo.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        lblSubtitulo.setForeground(Color.DARK_GRAY);
+        lblSubtitulo.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // --- Botão ---
-        formPanel.add(new JLabel("")); 
-        
+        card.add(lblTitulo);
+        card.add(Box.createVerticalStrut(10));
+        card.add(lblSubtitulo);
+        card.add(Box.createVerticalStrut(30));
+
+        JLabel lblUser = criarLabel("Username");
+        lblUser.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(lblUser);
+
+        txtUser = criarCampo("Aluno1");
+        card.add(txtUser);
+
+        card.add(Box.createVerticalStrut(15));
+
+        JLabel lblEquipa = criarLabel("Nome da Equipa");
+        lblEquipa.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(lblEquipa);
+
+        txtEquipa = criarCampo("EquipaA");
+        card.add(txtEquipa);
+
+        card.add(Box.createVerticalStrut(15));
+
+        JLabel lblSala = criarLabel("Código da Sala");
+        lblSala.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(lblSala);
+
+        txtSala = criarCampo("SALA-1");
+        card.add(txtSala);
+
+        card.add(Box.createVerticalStrut(30));
+
         btnEntrar = new JButton("ENTRAR");
-        btnEntrar.setBackground(new Color(70, 130, 180));
+        btnEntrar.setFont(new Font("SansSerif", Font.BOLD, 16));
+        btnEntrar.setBackground(new Color(90, 72, 255));
         btnEntrar.setForeground(Color.WHITE);
         btnEntrar.setFocusPainted(false);
-        
-        btnEntrar.addActionListener(acaoBotao);
-        formPanel.add(btnEntrar);
+        btnEntrar.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
+        btnEntrar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnEntrar.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        this.add(formPanel);
+        btnEntrar.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btnEntrar.setBackground(new Color(70, 52, 235));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btnEntrar.setBackground(new Color(90, 72, 255));
+            }
+        });
+
+        btnEntrar.addActionListener(acaoBotao);
+        card.add(btnEntrar);
+
+        add(card); 
     }
 
+
+    private JLabel criarLabel(String texto) {
+        JLabel lbl = new JLabel(texto);
+        lbl.setFont(new Font("SansSerif", Font.BOLD, 13));
+        lbl.setForeground(new Color(80, 80, 80));
+        return lbl;
+    }
+
+    private JTextField criarCampo(String texto) {
+        JTextField campo = new JTextField(texto);
+        campo.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        campo.setMaximumSize(new Dimension(260, 36)); // 👈 largura fixa
+        campo.setAlignmentX(Component.CENTER_ALIGNMENT);
+        campo.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
+        return campo;
+    }
+
+
     public void setDados(String user, String equipa, String sala) {
-        this.txtUser.setText(user);
-        this.txtEquipa.setText(equipa);
-        this.txtSala.setText(sala);
+        txtUser.setText(user);
+        txtEquipa.setText(equipa);
+        txtSala.setText(sala);
     }
 
     public String getUsername() {
