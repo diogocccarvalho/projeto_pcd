@@ -107,34 +107,6 @@ public class PainelJogo extends JPanel {
 
         timer = new Timer(1000, e -> atualizarTimer());
 
-        // --- Scoreboard Panel ---
-        JPanel scoreboardPanel = new JPanel(new BorderLayout());
-        scoreboardPanel.setBackground(branco);
-        scoreboardPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(preto, 5),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
-        scoreboardPanel.setPreferredSize(new Dimension(220, 0));
-
-        JLabel scoreboardTitle = new JLabel("ScoreBoard", SwingConstants.CENTER);
-        scoreboardTitle.setFont(new Font("Calibri", Font.BOLD | Font.ITALIC, 25));
-        scoreboardTitle.setForeground(preto);
-        scoreboardPanel.add(scoreboardTitle, BorderLayout.NORTH);
-
-        scoreBoard = new JTextArea();
-        scoreBoard.setEditable(false);
-        scoreBoard.setFont(new Font("Arial", Font.PLAIN, 14));
-        scoreBoard.setBackground(branco);
-        scoreBoard.setForeground(Color.DARK_GRAY);
-        scoreBoard.setMargin(new Insets(10, 10, 10, 10));
-
-        JScrollPane scroll = new JScrollPane(scoreBoard);
-        scroll.setBorder(null);
-        scoreboardPanel.add(scroll, BorderLayout.CENTER);
-
-        add(scoreboardPanel, BorderLayout.EAST);
-        
-        // NEW: Painel para a lista de jogadores
         JPanel playerListPanel = new JPanel(new BorderLayout());
         playerListPanel.setBackground(branco);
         playerListPanel.setBorder(BorderFactory.createCompoundBorder(

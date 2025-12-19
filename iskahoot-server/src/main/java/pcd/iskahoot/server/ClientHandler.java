@@ -63,14 +63,17 @@ public class ClientHandler implements Runnable {
                 if (entrou) {
                     System.out.println("[Server] " + idJogador + " entrou na sala " + myGame.getIdSala());
                     
-                    // Envia confirmação e lista atual
-                    out.writeObject(new MensagemLoginResultado(true, null));
-                    out.writeObject(new MensagemListaJogadores(myGame.getPlayersInGame()));
-                    // FIX: IMPORTANT FLUSH/RESET
-                    // Ensures the client receives this immediately and the stream is clean 
-                    // before the GameLoop thread starts using it for broadcasts.
-                    out.flush(); 
-                    out.reset(); 
+                    // FIX: Synchronize on myGame to prevent race condition.
+                    // O 'out' já foi publicado em 'addPlayerOutputStream'. Se não sincronizarmos aqui,
+                    // um broadcast de outra thread (ex: outro jogador a entrar ou GameLoop) pode tentar
+                    // escrever neste 'out' ao mesmo tempo que estamos a escrever o LoginResultado.
+                    synchronized(myGame) {
+                        // Envia confirmação e lista atual
+                        out.writeObject(new MensagemLoginResultado(true, null));
+                        out.writeObject(new MensagemListaJogadores(myGame.getPlayersInGame()));
+                        out.flush(); 
+                        out.reset(); 
+                    }
                     
                     // Avisa os outros
                     myGame.broadcastMessage(new MensagemNovoJogador(idJogador), idJogador);
